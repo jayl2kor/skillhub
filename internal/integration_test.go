@@ -33,11 +33,18 @@ func TestFullWorkflow(t *testing.T) {
 			},
 		},
 	}
-	idxData, _ := json.Marshal(idx)
-	os.WriteFile(filepath.Join(regDir, "index.json"), idxData, 0644)
+	idxData, err := json.Marshal(idx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(regDir, "index.json"), idxData, 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	// Create skill archive
-	os.MkdirAll(filepath.Join(regDir, "packages"), 0755)
+	if err := os.MkdirAll(filepath.Join(regDir, "packages"), 0755); err != nil {
+		t.Fatal(err)
+	}
 	createSkillArchive(t,
 		filepath.Join(regDir, "packages", "test-prompt-1.0.0.tar.gz"),
 		map[string]string{
@@ -56,7 +63,9 @@ func TestFullWorkflow(t *testing.T) {
 
 	// Step 2: Create config with registry
 	cfg := config.DefaultConfig(homeDir)
-	cfg.AddRegistry("test-reg", regDir, "", "", "")
+	if err := cfg.AddRegistry("test-reg", regDir, "", "", ""); err != nil {
+		t.Fatal(err)
+	}
 	if err := cfg.Save(paths.Config); err != nil {
 		t.Fatalf("Save config: %v", err)
 	}
@@ -150,7 +159,9 @@ func TestFullWorkflow(t *testing.T) {
 	}
 
 	// Step 10: Remove registry
-	cfg.RemoveRegistry("test-reg")
+	if err := cfg.RemoveRegistry("test-reg"); err != nil {
+		t.Fatal(err)
+	}
 	if len(cfg.Registries) != 0 {
 		t.Errorf("expected 0 registries, got %d", len(cfg.Registries))
 	}

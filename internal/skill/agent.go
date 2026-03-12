@@ -9,11 +9,11 @@ type AgentType struct {
 }
 
 var knownAgents = map[string]AgentType{
-	"claude":  {Name: "claude", SkillsPath: ".claude/skills"},
-	"cursor":  {Name: "cursor", SkillsPath: ".cursor/skills"},
+	"claude":   {Name: "claude", SkillsPath: ".claude/skills"},
+	"cursor":   {Name: "cursor", SkillsPath: ".cursor/skills"},
 	"windsurf": {Name: "windsurf", SkillsPath: ".windsurf/skills"},
-	"cline":   {Name: "cline", SkillsPath: ".cline/skills"},
-	"generic": {Name: "generic", SkillsPath: ".ai/skills"},
+	"cline":    {Name: "cline", SkillsPath: ".cline/skills"},
+	"generic":  {Name: "generic", SkillsPath: ".ai/skills"},
 }
 
 // LookupAgent returns the agent type definition for the given name.

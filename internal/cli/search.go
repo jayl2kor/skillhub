@@ -52,8 +52,9 @@ var searchCmd = &cobra.Command{
 		fmt.Fprintln(w, "NAME\tVERSION\tDESCRIPTION")
 		for _, r := range results {
 			desc := r.Description
-			if len(desc) > 60 {
-				desc = desc[:57] + "..."
+			runes := []rune(desc)
+			if len(runes) > 60 {
+				desc = string(runes[:57]) + "..."
 			}
 			fmt.Fprintf(w, "%s\t%s\t%s\n", r.Name, r.Version, desc)
 		}
