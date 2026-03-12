@@ -56,6 +56,7 @@ skillhub install code-review --global --tool claude
 | `repo add <url>` | Add a skill registry |
 | `repo list` | List configured registries |
 | `repo remove <name>` | Remove a registry |
+| `completion <shell>` | Generate shell autocompletion (bash/zsh/fish/powershell) |
 
 ### Global Flags
 
