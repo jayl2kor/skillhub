@@ -44,7 +44,9 @@ func TestPromptRunner(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	if _, err := buf.ReadFrom(r); err != nil {
+		t.Fatalf("reading output: %v", err)
+	}
 
 	if buf.String() != promptContent {
 		t.Errorf("expected %q, got %q", promptContent, buf.String())

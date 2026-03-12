@@ -36,7 +36,9 @@ func writeTestConfig(t *testing.T, p *storage.Paths) *config.Config {
 func installFakeSkill(t *testing.T, p *storage.Paths, name string) {
 	t.Helper()
 	dir := p.SkillDir(name)
-	os.MkdirAll(dir, 0755)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatalf("creating skill dir: %v", err)
+	}
 	manifest := skill.Manifest{
 		Name:        name,
 		Version:     "1.0.0",
@@ -51,7 +53,9 @@ func installFakeSkill(t *testing.T, p *storage.Paths, name string) {
 	if err := os.WriteFile(filepath.Join(dir, "skill.json"), data, 0644); err != nil {
 		t.Fatalf("writing manifest: %v", err)
 	}
-	os.WriteFile(filepath.Join(dir, "prompt.md"), []byte("test prompt"), 0644)
+	if err := os.WriteFile(filepath.Join(dir, "prompt.md"), []byte("test prompt"), 0644); err != nil {
+		t.Fatalf("writing prompt: %v", err)
+	}
 }
 
 func TestInitCreatesWorkspace(t *testing.T) {
