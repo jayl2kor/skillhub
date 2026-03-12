@@ -6,6 +6,26 @@ Search, install, run, update, and remove skills from registries with a single co
 
 ## Installation
 
+### Binary (recommended)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jayl2kor/skillhub/master/install.sh | sh
+```
+
+Or with `wget`:
+
+```bash
+wget -qO- https://raw.githubusercontent.com/jayl2kor/skillhub/master/install.sh | sh
+```
+
+To install to a custom directory:
+
+```bash
+INSTALL_DIR=~/.local/bin curl -fsSL https://raw.githubusercontent.com/jayl2kor/skillhub/master/install.sh | sh
+```
+
+### From source
+
 ```bash
 go install github.com/jayl2kor/skillhub@latest
 ```
