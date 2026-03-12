@@ -60,6 +60,7 @@ skillhub install code-review --global --tool claude
 | `repo remove <name>` | Remove a registry |
 | `completion <shell>` | Generate shell autocompletion (bash/zsh/fish/powershell) |
 | `repo index <dir>` | Generate index.json from skill archives |
+| `repo update [name]` | Fetch and cache registry indexes |
 
 ### Global Flags
 
