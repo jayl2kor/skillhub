@@ -69,6 +69,7 @@ skillhub install code-review --global --tool claude
 | `--home <path>` | `~/.skillhub` | Workspace directory (or `SKILLHUB_HOME` env) |
 | `--verbose` | `false` | Enable verbose output |
 | `--version` | - | Print version info |
+| `-o, --output` | `table` | Output format for list/search/info (table, json, yaml) |
 
 ### Install Flags
 

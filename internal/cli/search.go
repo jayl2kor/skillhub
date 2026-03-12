@@ -43,6 +43,11 @@ var searchCmd = &cobra.Command{
 		} else {
 			results = idx.Skills
 		}
+
+		if isStructuredOutput() {
+			return printFormatted(results)
+		}
+
 		if len(results) == 0 {
 			fmt.Println("No skills found.")
 			return nil
@@ -65,5 +70,6 @@ var searchCmd = &cobra.Command{
 }
 
 func init() {
+	searchCmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "output format (table, json, yaml)")
 	rootCmd.AddCommand(searchCmd)
 }
