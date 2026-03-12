@@ -3,6 +3,7 @@ package cli
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/jayl2kor/skillhub/internal/runtime"
 	"github.com/jayl2kor/skillhub/internal/skill"
@@ -38,7 +39,7 @@ var runCmd = &cobra.Command{
 		if toolFlag != "" && len(s.Manifest.CompatibleAgents) > 0 {
 			compatible := false
 			for _, a := range s.Manifest.CompatibleAgents {
-				if a == toolFlag {
+				if strings.EqualFold(a, toolFlag) {
 					compatible = true
 					break
 				}
