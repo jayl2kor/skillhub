@@ -76,7 +76,7 @@ When `--global` is used, the skill is installed to the project-level agent direc
 | `cursor` | `.cursor/skills/<name>` |
 | `windsurf` | `.windsurf/skills/<name>` |
 | `cline` | `.cline/skills/<name>` |
-| `generic` | `.ai/skills/<name>` |
+| `generic` | `.agent/skills/<name>` |
 
 ### Run Flags
 
