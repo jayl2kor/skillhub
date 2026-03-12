@@ -21,15 +21,16 @@ var (
 )
 
 type Manifest struct {
-	Name        string   `json:"name"`
-	Version     string   `json:"version"`
-	Description string   `json:"description"`
-	Entry       string   `json:"entry"`
-	Type        string   `json:"type"`
-	Tags        []string `json:"tags,omitempty"`
-	Author      string   `json:"author,omitempty"`
-	Homepage    string   `json:"homepage,omitempty"`
-	License     string   `json:"license,omitempty"`
+	Name             string   `json:"name"`
+	Version          string   `json:"version"`
+	Description      string   `json:"description"`
+	Entry            string   `json:"entry"`
+	Type             string   `json:"type"`
+	Tags             []string `json:"tags,omitempty"`
+	Author           string   `json:"author,omitempty"`
+	Homepage         string   `json:"homepage,omitempty"`
+	License          string   `json:"license,omitempty"`
+	CompatibleAgents []string `json:"compatible_agents,omitempty"`
 }
 
 func LoadManifest(path string) (*Manifest, error) {

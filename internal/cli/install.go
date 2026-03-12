@@ -9,6 +9,7 @@ import (
 var (
 	forceInstall  bool
 	globalInstall bool
+	installTool   string
 )
 
 var installCmd = &cobra.Command{
@@ -23,12 +24,14 @@ var installCmd = &cobra.Command{
 
 		inst := installer.NewInstaller(paths, cfg)
 		inst.Verbose = logVerbose
+		inst.AgentTool = installTool
 		return inst.Install(args[0], forceInstall, globalInstall)
 	},
 }
 
 func init() {
 	installCmd.Flags().BoolVar(&forceInstall, "force", false, "force reinstall if already installed")
-	installCmd.Flags().BoolVar(&globalInstall, "global", false, "install to project .claude/skills/ for Claude Code")
+	installCmd.Flags().BoolVar(&globalInstall, "global", false, "install to project skills directory for the agent")
+	installCmd.Flags().StringVar(&installTool, "tool", "claude", "agent type for --global install path (claude, cursor, windsurf, cline, generic)")
 	rootCmd.AddCommand(installCmd)
 }
