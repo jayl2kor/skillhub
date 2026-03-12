@@ -65,12 +65,18 @@ func loadOrSetupConfig() (*config.Config, error) {
 				forceAnswer, _ := reader.ReadString('\n')
 				forceAnswer = strings.TrimSpace(forceAnswer)
 				if strings.ToLower(forceAnswer) == "y" {
-					cfg.AddRegistry(source.Name, source.URL, source.Token, source.Username, source.Branch)
-					fmt.Printf("레지스트리 '%s'를 추가했습니다.\n", source.Name)
+					if err := cfg.AddRegistry(source.Name, source.URL, source.Token, source.Username, source.Branch); err != nil {
+						fmt.Fprintf(os.Stderr, "경고: 레지스트리 추가 실패 (%v)\n", err)
+					} else {
+						fmt.Printf("레지스트리 '%s'를 추가했습니다.\n", source.Name)
+					}
 				}
 			} else {
-				cfg.AddRegistry(source.Name, source.URL, source.Token, source.Username, source.Branch)
-				fmt.Printf("레지스트리 '%s'를 추가했습니다.\n", source.Name)
+				if err := cfg.AddRegistry(source.Name, source.URL, source.Token, source.Username, source.Branch); err != nil {
+					fmt.Fprintf(os.Stderr, "경고: 레지스트리 추가 실패 (%v)\n", err)
+				} else {
+					fmt.Printf("레지스트리 '%s'를 추가했습니다.\n", source.Name)
+				}
 			}
 		}
 	}
