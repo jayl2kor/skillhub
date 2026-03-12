@@ -13,7 +13,7 @@ var knownAgents = map[string]AgentType{
 	"cursor":   {Name: "cursor", SkillsPath: ".cursor/skills"},
 	"windsurf": {Name: "windsurf", SkillsPath: ".windsurf/skills"},
 	"cline":    {Name: "cline", SkillsPath: ".cline/skills"},
-	"generic":  {Name: "generic", SkillsPath: ".ai/skills"},
+	"generic":  {Name: "generic", SkillsPath: ".agent/skills"},
 }
 
 // LookupAgent returns the agent type definition for the given name.
