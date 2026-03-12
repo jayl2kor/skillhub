@@ -34,7 +34,7 @@ func TestSubcommandRegistration(t *testing.T) {
 }
 
 func TestRepoSubcommands(t *testing.T) {
-	expected := []string{"add", "list", "remove"}
+	expected := []string{"add", "list", "remove", "index"}
 
 	commands := make(map[string]bool)
 	for _, cmd := range repoCmd.Commands() {
