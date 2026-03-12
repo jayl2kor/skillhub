@@ -66,8 +66,8 @@ func IsInstalled(paths *Paths, name string) bool {
 	}
 	// Local check (.claude/skills/)
 	projectRoot := DetectProjectRoot()
-	skillMD := filepath.Join(projectRoot, ".claude", "skills", name, "SKILL.md")
-	_, err := os.Stat(skillMD)
+	localManifest := filepath.Join(projectRoot, ".claude", "skills", name, "skill.json")
+	_, err := os.Stat(localManifest)
 	return err == nil
 }
 
