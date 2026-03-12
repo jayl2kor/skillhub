@@ -8,8 +8,14 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
+)
+
+const (
+	maxDownloadSize    = 500 * 1024 * 1024 // 500MB for archive downloads
+	maxAPIResponseSize = 10 * 1024 * 1024  // 10MB for API/JSON responses
 )
 
 type Client struct {
@@ -104,30 +110,59 @@ func (c *Client) FetchAllIndexes(sources []RepoSource) (*Index, error) {
 	return MergeIndexes(indexes...), nil
 }
 
-func (c *Client) Download(url, dest, token, username string) error {
-	data, err := c.fetch(url, token, username)
-	if err != nil {
-		return fmt.Errorf("downloading %s: %w", url, err)
+func (c *Client) Download(rawURL, dest, token, username string) error {
+	if isLocalPath(rawURL) {
+		data, err := os.ReadFile(rawURL)
+		if err != nil {
+			return fmt.Errorf("reading local file %s: %w", rawURL, err)
+		}
+		return os.WriteFile(dest, data, 0644)
 	}
 
-	if err := os.WriteFile(dest, data, 0644); err != nil {
-		return fmt.Errorf("writing to %s: %w", dest, err)
+	req, err := c.newRequest(rawURL, token, username)
+	if err != nil {
+		return fmt.Errorf("creating request for %s: %w", rawURL, err)
+	}
+
+	resp, err := c.HTTPClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("downloading %s: %w", rawURL, err)
+	}
+	defer resp.Body.Close()
+
+	if err := checkResponse(resp, rawURL, token); err != nil {
+		return err
+	}
+
+	tmpFile, err := os.CreateTemp(filepath.Dir(dest), ".download-*")
+	if err != nil {
+		return fmt.Errorf("creating temp file: %w", err)
+	}
+	tmpPath := tmpFile.Name()
+	defer os.Remove(tmpPath)
+
+	n, err := io.Copy(tmpFile, io.LimitReader(resp.Body, maxDownloadSize+1))
+	tmpFile.Close()
+	if err != nil {
+		return fmt.Errorf("writing download to %s: %w", dest, err)
+	}
+	if n > maxDownloadSize {
+		return fmt.Errorf("download from %s exceeds maximum size (%d bytes)", rawURL, maxDownloadSize)
+	}
+
+	if err := os.Rename(tmpPath, dest); err != nil {
+		return fmt.Errorf("moving download to %s: %w", dest, err)
 	}
 
 	return nil
 }
 
-func (c *Client) fetch(url, token, username string) ([]byte, error) {
-	if isLocalPath(url) {
-		return os.ReadFile(url)
-	}
-
-	req, err := http.NewRequest("GET", url, nil)
+func (c *Client) newRequest(rawURL, token, username string) (*http.Request, error) {
+	req, err := http.NewRequest("GET", rawURL, nil)
 	if err != nil {
 		return nil, err
 	}
-	// GitHub Enterprise API: raw 파일 내용을 직접 받기 위한 Accept 헤더
-	if strings.Contains(url, "/api/v3/repos/") && strings.Contains(url, "/contents/") {
+	if strings.Contains(rawURL, "/api/v3/repos/") && strings.Contains(rawURL, "/contents/") {
 		req.Header.Set("Accept", "application/vnd.github.raw")
 	}
 	if token != "" {
@@ -138,6 +173,45 @@ func (c *Client) fetch(url, token, username string) ([]byte, error) {
 			req.Header.Set("Authorization", "token "+token)
 		}
 	}
+	return req, nil
+}
+
+func checkResponse(resp *http.Response, rawURL, token string) error {
+	credentialHint := "--token and --username"
+	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
+		if token == "" {
+			return fmt.Errorf("HTTP %d from %s (authentication required; use %s to provide credentials)", resp.StatusCode, rawURL, credentialHint)
+		}
+		return fmt.Errorf("HTTP %d from %s (credentials may be invalid or expired)", resp.StatusCode, rawURL)
+	}
+	if resp.StatusCode >= 300 && resp.StatusCode < 400 {
+		if token == "" {
+			return fmt.Errorf("HTTP %d redirect from %s (private registry? use %s to provide credentials)", resp.StatusCode, rawURL, credentialHint)
+		}
+		return fmt.Errorf("HTTP %d redirect from %s", resp.StatusCode, rawURL)
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("HTTP %d from %s", resp.StatusCode, rawURL)
+	}
+	contentType := resp.Header.Get("Content-Type")
+	if strings.Contains(contentType, "text/html") {
+		if token == "" {
+			return fmt.Errorf("received HTML instead of JSON from %s (private registry? use %s to provide credentials)", rawURL, credentialHint)
+		}
+		return fmt.Errorf("received HTML instead of JSON from %s (credentials may be invalid or expired)", rawURL)
+	}
+	return nil
+}
+
+func (c *Client) fetch(rawURL, token, username string) ([]byte, error) {
+	if isLocalPath(rawURL) {
+		return os.ReadFile(rawURL)
+	}
+
+	req, err := c.newRequest(rawURL, token, username)
+	if err != nil {
+		return nil, err
+	}
 
 	resp, err := c.HTTPClient.Do(req)
 	if err != nil {
@@ -145,32 +219,17 @@ func (c *Client) fetch(url, token, username string) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	credentialHint := "--token and --username"
-	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
-		if token == "" {
-			return nil, fmt.Errorf("HTTP %d from %s (authentication required; use %s to provide credentials)", resp.StatusCode, url, credentialHint)
-		}
-		return nil, fmt.Errorf("HTTP %d from %s (credentials may be invalid or expired)", resp.StatusCode, url)
+	if err := checkResponse(resp, rawURL, token); err != nil {
+		return nil, err
 	}
 
-	if resp.StatusCode >= 300 && resp.StatusCode < 400 {
-		if token == "" {
-			return nil, fmt.Errorf("HTTP %d redirect from %s (private registry? use %s to provide credentials)", resp.StatusCode, url, credentialHint)
-		}
-		return nil, fmt.Errorf("HTTP %d redirect from %s", resp.StatusCode, url)
+	data, err := io.ReadAll(io.LimitReader(resp.Body, maxAPIResponseSize+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(data)) > maxAPIResponseSize {
+		return nil, fmt.Errorf("response from %s exceeds maximum size (%d bytes)", rawURL, maxAPIResponseSize)
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("HTTP %d from %s", resp.StatusCode, url)
-	}
-
-	contentType := resp.Header.Get("Content-Type")
-	if strings.Contains(contentType, "text/html") {
-		if token == "" {
-			return nil, fmt.Errorf("received HTML instead of JSON from %s (private registry? use %s to provide credentials)", url, credentialHint)
-		}
-		return nil, fmt.Errorf("received HTML instead of JSON from %s (credentials may be invalid or expired)", url)
-	}
-
-	return io.ReadAll(resp.Body)
+	return data, nil
 }
