@@ -40,6 +40,10 @@ skillhub install code-review --global --tool claude
 | `install <skill>` | Install a skill from a registry |
 | `list` | List installed skills |
 | `info <skill>` | Show detailed skill information |
+| `show manifest <skill>` | Show raw skill.json |
+| `show readme <skill>` | Show SKILL.md |
+| `show entry <skill>` | Show entry file content |
+| `show all <skill>` | Show manifest + readme |
 | `run <skill> [args...]` | Run an installed skill |
 | `update [skill]` | Update installed skills to latest versions |
 | `remove <skill>` | Remove an installed skill |
