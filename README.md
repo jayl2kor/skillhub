@@ -58,6 +58,7 @@ skillhub install code-review --global --tool claude
 | `verify <archive>` | Verify a skill archive |
 | `repo remove <name>` | Remove a registry |
 | `completion <shell>` | Generate shell autocompletion (bash/zsh/fish/powershell) |
+| `repo index <dir>` | Generate index.json from skill archives |
 
 ### Global Flags
 
