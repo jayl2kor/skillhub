@@ -17,6 +17,7 @@ type Installer struct {
 	Client    *registry.Client
 	Verbose   func(format string, args ...any)
 	AgentTool string // agent type for --global install path (default: "claude")
+	Version   string // specific version to install (empty = latest)
 }
 
 func NewInstaller(paths *storage.Paths, cfg *config.Config) *Installer {
@@ -60,9 +61,17 @@ func (inst *Installer) Install(name string, force bool, global bool) error {
 	inst.logVerbose("found %d skill(s) across registries", len(idx.Skills))
 
 	// 4. Find skill
-	entry := idx.Find(name)
-	if entry == nil {
-		return fmt.Errorf("skill %q not found in any registry", name)
+	var entry *registry.IndexEntry
+	if inst.Version != "" {
+		entry = idx.FindVersion(name, inst.Version)
+		if entry == nil {
+			return fmt.Errorf("skill %q version %q not found in any registry", name, inst.Version)
+		}
+	} else {
+		entry = idx.Find(name)
+		if entry == nil {
+			return fmt.Errorf("skill %q not found in any registry", name)
+		}
 	}
 
 	// 5. Resolve download URL and credentials

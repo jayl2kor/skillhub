@@ -78,6 +78,7 @@ skillhub install code-review --global --tool claude
 | `--force` | `false` | Force reinstall |
 | `--global` | `false` | Install to project agent directory |
 | `--tool <type>` | `claude` | Agent type for `--global` install |
+| `--version <ver>` | - | Install a specific version |
 
 When `--global` is used, the skill is installed to the project-level agent directory and requires a `SKILL.md` file in the package.
 
