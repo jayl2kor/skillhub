@@ -122,6 +122,11 @@ func (inst *Installer) Install(name string, force bool, global bool) error {
 		return fmt.Errorf("invalid manifest: %w", err)
 	}
 
+	entryPath := filepath.Join(filepath.Dir(manifestPath), m.Entry)
+	if _, err := os.Stat(entryPath); os.IsNotExist(err) {
+		return fmt.Errorf("entry file %q not found in skill archive", m.Entry)
+	}
+
 	// 9.5. SKILL.md is required only for Claude Code integration (--global)
 	if global {
 		skillMDPath := filepath.Join(filepath.Dir(manifestPath), "SKILL.md")
