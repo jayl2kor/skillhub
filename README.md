@@ -47,6 +47,7 @@ skillhub install code-review --global --tool claude
 | `run <skill> [args...]` | Run an installed skill |
 | `update [skill]` | Update installed skills to latest versions |
 | `remove <skill>` | Remove an installed skill |
+| `create <name>` | Scaffold a new skill project |
 | `doctor` | Check workspace health |
 | `cache list` | List cached download files |
 | `cache clean` | Remove all cached files |
