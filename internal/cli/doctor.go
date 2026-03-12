@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/jayl2kor/skillhub/internal/config"
 	"github.com/jayl2kor/skillhub/internal/storage"
@@ -55,7 +56,7 @@ var doctorCmd = &cobra.Command{
 
 		// Check cache writable
 		fmt.Print("Cache writable... ")
-		testFile := paths.CacheDir + "/.doctor-test"
+		testFile := filepath.Join(paths.CacheDir, ".doctor-test")
 		if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
 			fmt.Printf("NO (%v)\n", err)
 			ok = false

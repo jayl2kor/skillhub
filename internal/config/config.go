@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"gopkg.in/yaml.v3"
 )
@@ -25,9 +26,9 @@ type Config struct {
 func DefaultConfig(home string) *Config {
 	return &Config{
 		Registries: []RegistryEntry{},
-		InstallDir: home + "/skills",
-		CacheDir:   home + "/cache",
-		LogDir:     home + "/logs",
+		InstallDir: filepath.Join(home, "skills"),
+		CacheDir:   filepath.Join(home, "cache"),
+		LogDir:     filepath.Join(home, "logs"),
 	}
 }
 
