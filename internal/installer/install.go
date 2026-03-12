@@ -12,10 +12,11 @@ import (
 )
 
 type Installer struct {
-	Paths   *storage.Paths
-	Config  *config.Config
-	Client  *registry.Client
-	Verbose func(format string, args ...any)
+	Paths     *storage.Paths
+	Config    *config.Config
+	Client    *registry.Client
+	Verbose   func(format string, args ...any)
+	AgentTool string // agent type for --global install path (default: "claude")
 }
 
 func NewInstaller(paths *storage.Paths, cfg *config.Config) *Installer {
@@ -132,8 +133,16 @@ func (inst *Installer) Install(name string, force bool, global bool) error {
 	// 10. Determine install target
 	var finalDir string
 	if global {
+		agentTool := inst.AgentTool
+		if agentTool == "" {
+			agentTool = "claude"
+		}
+		agent, err := skill.LookupAgent(agentTool)
+		if err != nil {
+			return err
+		}
 		projectRoot := storage.DetectProjectRoot()
-		finalDir = filepath.Join(projectRoot, ".claude", "skills", name)
+		finalDir = filepath.Join(projectRoot, agent.SkillsPath, name)
 	} else {
 		finalDir = inst.Paths.SkillDir(name)
 	}
