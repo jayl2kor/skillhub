@@ -30,10 +30,17 @@ func setupTestRegistry(t *testing.T) (string, string) {
 		},
 	}
 
-	idxData, _ := json.Marshal(idx)
-	os.WriteFile(filepath.Join(regDir, "index.json"), idxData, 0644)
+	idxData, err := json.Marshal(idx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(regDir, "index.json"), idxData, 0644); err != nil {
+		t.Fatal(err)
+	}
 
-	os.MkdirAll(filepath.Join(regDir, "packages"), 0755)
+	if err := os.MkdirAll(filepath.Join(regDir, "packages"), 0755); err != nil {
+		t.Fatal(err)
+	}
 
 	// Create tar.gz with skill files
 	archivePath := filepath.Join(regDir, "packages", "test-skill-1.0.0.tar.gz")
@@ -57,8 +64,12 @@ func setupTestRegistry(t *testing.T) (string, string) {
 			Mode: 0644,
 			Size: int64(len(content)),
 		}
-		tw.WriteHeader(hdr)
-		tw.Write([]byte(content))
+		if err := tw.WriteHeader(hdr); err != nil {
+			t.Fatal(err)
+		}
+		if _, err := tw.Write([]byte(content)); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	tw.Close()
@@ -73,7 +84,9 @@ func TestInstall(t *testing.T) {
 	regDir, homeDir := setupTestRegistry(t)
 
 	paths := storage.NewPaths(homeDir)
-	paths.EnsureDirectories()
+	if err := paths.EnsureDirectories(); err != nil {
+		t.Fatal(err)
+	}
 
 	cfg := &config.Config{
 		Registries: []config.RegistryEntry{
@@ -107,7 +120,9 @@ func TestInstallAlreadyInstalled(t *testing.T) {
 	regDir, homeDir := setupTestRegistry(t)
 
 	paths := storage.NewPaths(homeDir)
-	paths.EnsureDirectories()
+	if err := paths.EnsureDirectories(); err != nil {
+		t.Fatal(err)
+	}
 
 	cfg := &config.Config{
 		Registries: []config.RegistryEntry{
@@ -133,11 +148,15 @@ func TestInstallAlreadyInstalled(t *testing.T) {
 
 func TestInstallNotFound(t *testing.T) {
 	regDir := t.TempDir()
-	os.WriteFile(filepath.Join(regDir, "index.json"), []byte(`{"skills": []}`), 0644)
+	if err := os.WriteFile(filepath.Join(regDir, "index.json"), []byte(`{"skills": []}`), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	homeDir := t.TempDir()
 	paths := storage.NewPaths(homeDir)
-	paths.EnsureDirectories()
+	if err := paths.EnsureDirectories(); err != nil {
+		t.Fatal(err)
+	}
 
 	cfg := &config.Config{
 		Registries: []config.RegistryEntry{
@@ -155,7 +174,9 @@ func TestInstallNotFound(t *testing.T) {
 func TestInstallNoRegistries(t *testing.T) {
 	homeDir := t.TempDir()
 	paths := storage.NewPaths(homeDir)
-	paths.EnsureDirectories()
+	if err := paths.EnsureDirectories(); err != nil {
+		t.Fatal(err)
+	}
 
 	cfg := &config.Config{}
 

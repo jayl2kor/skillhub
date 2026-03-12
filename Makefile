@@ -16,7 +16,12 @@ clean:
 	rm -rf bin/ dist/
 
 lint:
-	go vet ./...
+	@if command -v golangci-lint >/dev/null 2>&1; then \
+		golangci-lint run ./...; \
+	else \
+		echo "golangci-lint not found, falling back to go vet"; \
+		go vet ./...; \
+	fi
 
 build-all:
 	GOOS=linux GOARCH=amd64 go build $(LDFLAGS) -o dist/$(BINARY_NAME)-linux-amd64 .
