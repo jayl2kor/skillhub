@@ -77,6 +77,27 @@ func isLocalPath(url string) bool {
 	return strings.HasPrefix(url, "/") || strings.HasPrefix(url, "./") || strings.HasPrefix(url, "../")
 }
 
+// ContentsAPIURL returns the GitHub Contents API URL for the given path.
+// For local paths, it returns the joined filesystem path.
+func (r *RepoSource) ContentsAPIURL(path string) string {
+	path = strings.TrimSuffix(path, "/")
+	if isLocalPath(r.URL) {
+		return filepath.Join(r.URL, path)
+	}
+
+	u, err := url.Parse(r.URL)
+	if err != nil {
+		return ""
+	}
+	ownerRepo := strings.Trim(u.Path, "/")
+
+	if u.Host == "github.com" {
+		return fmt.Sprintf("https://api.github.com/repos/%s/contents/%s?ref=%s", ownerRepo, path, r.branch())
+	}
+	// GitHub Enterprise
+	return fmt.Sprintf("%s://%s/api/v3/repos/%s/contents/%s?ref=%s", u.Scheme, u.Host, ownerRepo, path, r.branch())
+}
+
 func rawContentURL(repoURL, path, branch string) string {
 	// GitHub.com: use raw.githubusercontent.com
 	if strings.HasPrefix(repoURL, "https://github.com/") {

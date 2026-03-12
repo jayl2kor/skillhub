@@ -184,6 +184,206 @@ func TestDownloadLocal(t *testing.T) {
 	}
 }
 
+func TestDownloadDirectoryLocal(t *testing.T) {
+	// Create source directory with files
+	srcDir := t.TempDir()
+	skillDir := filepath.Join(srcDir, "skills", "my-skill")
+	if err := os.MkdirAll(skillDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(skillDir, "skill.json"), []byte(`{"name":"my-skill"}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(skillDir, "prompt.md"), []byte("# Prompt"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create subdirectory
+	subDir := filepath.Join(skillDir, "templates")
+	if err := os.MkdirAll(subDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(subDir, "default.md"), []byte("template"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Download directory
+	destDir := t.TempDir()
+	client := NewClient()
+	source := &RepoSource{Name: "local", URL: srcDir}
+
+	if err := client.DownloadDirectory(source, "skills/my-skill/", destDir); err != nil {
+		t.Fatalf("DownloadDirectory: %v", err)
+	}
+
+	// Verify files were copied
+	data, err := os.ReadFile(filepath.Join(destDir, "skill.json"))
+	if err != nil {
+		t.Fatalf("reading skill.json: %v", err)
+	}
+	if string(data) != `{"name":"my-skill"}` {
+		t.Errorf("unexpected skill.json content: %q", string(data))
+	}
+
+	data, err = os.ReadFile(filepath.Join(destDir, "prompt.md"))
+	if err != nil {
+		t.Fatalf("reading prompt.md: %v", err)
+	}
+	if string(data) != "# Prompt" {
+		t.Errorf("unexpected prompt.md content: %q", string(data))
+	}
+
+	// Verify subdirectory was copied
+	data, err = os.ReadFile(filepath.Join(destDir, "templates", "default.md"))
+	if err != nil {
+		t.Fatalf("reading templates/default.md: %v", err)
+	}
+	if string(data) != "template" {
+		t.Errorf("unexpected template content: %q", string(data))
+	}
+}
+
+func TestDownloadDirectoryGitHub(t *testing.T) {
+	// Mock GitHub Contents API
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch r.URL.Path {
+		case "/repos/owner/repo/contents/skills/test-skill":
+			// Directory listing
+			resp := `[
+				{"name":"skill.json","path":"skills/test-skill/skill.json","type":"file"},
+				{"name":"prompt.md","path":"skills/test-skill/prompt.md","type":"file"},
+				{"name":"sub","path":"skills/test-skill/sub","type":"dir"}
+			]`
+			w.Write([]byte(resp))
+		case "/repos/owner/repo/contents/skills/test-skill/sub":
+			// Subdirectory listing
+			resp := `[{"name":"helper.md","path":"skills/test-skill/sub/helper.md","type":"file"}]`
+			w.Write([]byte(resp))
+		default:
+			// Raw file content (simulating raw.githubusercontent.com)
+			switch {
+			case r.URL.Path == "/owner/repo/main/skills/test-skill/skill.json":
+				w.Write([]byte(`{"name":"test-skill"}`))
+			case r.URL.Path == "/owner/repo/main/skills/test-skill/prompt.md":
+				w.Write([]byte("# Test Prompt"))
+			case r.URL.Path == "/owner/repo/main/skills/test-skill/sub/helper.md":
+				w.Write([]byte("helper content"))
+			default:
+				http.NotFound(w, r)
+			}
+		}
+	}))
+	defer server.Close()
+
+	// Create a source that points to our mock server
+	// We need to make ContentsAPIURL and ResolveDownloadURL return URLs pointing to our test server
+	// The simplest way: use a custom source with URL pointing to our server
+	source := &RepoSource{
+		Name:   "test",
+		URL:    server.URL + "/owner/repo",
+		Branch: "main",
+	}
+
+	// Verify ContentsAPIURL generates correct URL format for non-github.com hosts
+	apiURL := source.ContentsAPIURL("skills/test-skill/")
+	expected := server.URL + "/api/v3/repos/owner/repo/contents/skills/test-skill?ref=main"
+	if apiURL != expected {
+		t.Fatalf("ContentsAPIURL = %q, want %q", apiURL, expected)
+	}
+
+	// For the actual download test, we need the server to handle the API v3 path
+	// Recreate server to handle the /api/v3/ prefix
+	server.Close()
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		switch r.URL.Path {
+		case "/api/v3/repos/owner/repo/contents/skills/test-skill":
+			resp := `[
+				{"name":"skill.json","path":"skills/test-skill/skill.json","type":"file"},
+				{"name":"prompt.md","path":"skills/test-skill/prompt.md","type":"file"}
+			]`
+			w.Write([]byte(resp))
+		default:
+			// GHE raw content uses the API v3 contents endpoint
+			if r.URL.Path == "/api/v3/repos/owner/repo/contents/skills/test-skill/skill.json" {
+				w.Write([]byte(`{"name":"test-skill"}`))
+			} else if r.URL.Path == "/api/v3/repos/owner/repo/contents/skills/test-skill/prompt.md" {
+				w.Write([]byte("# Test Prompt"))
+			} else {
+				http.NotFound(w, r)
+			}
+		}
+	}))
+	defer server.Close()
+
+	source = &RepoSource{
+		Name:   "test",
+		URL:    server.URL + "/owner/repo",
+		Branch: "main",
+	}
+
+	destDir := t.TempDir()
+	client := NewClient()
+	if err := client.DownloadDirectory(source, "skills/test-skill/", destDir); err != nil {
+		t.Fatalf("DownloadDirectory GitHub: %v", err)
+	}
+
+	// Verify files
+	data, err := os.ReadFile(filepath.Join(destDir, "skill.json"))
+	if err != nil {
+		t.Fatalf("reading skill.json: %v", err)
+	}
+	if string(data) != `{"name":"test-skill"}` {
+		t.Errorf("unexpected content: %q", string(data))
+	}
+}
+
+func TestContentsAPIURL(t *testing.T) {
+	tests := []struct {
+		name     string
+		source   RepoSource
+		path     string
+		expected string
+	}{
+		{
+			name:     "github.com",
+			source:   RepoSource{URL: "https://github.com/owner/repo", Branch: "main"},
+			path:     "skills/my-skill/",
+			expected: "https://api.github.com/repos/owner/repo/contents/skills/my-skill?ref=main",
+		},
+		{
+			name:     "github enterprise",
+			source:   RepoSource{URL: "https://git.corp.com/owner/repo", Branch: "develop"},
+			path:     "skills/my-skill/",
+			expected: "https://git.corp.com/api/v3/repos/owner/repo/contents/skills/my-skill?ref=develop",
+		},
+		{
+			name:     "local path",
+			source:   RepoSource{URL: "/tmp/registry"},
+			path:     "skills/my-skill/",
+			expected: "/tmp/registry/skills/my-skill",
+		},
+		{
+			name:     "default branch",
+			source:   RepoSource{URL: "https://github.com/owner/repo"},
+			path:     "skills/test",
+			expected: "https://api.github.com/repos/owner/repo/contents/skills/test?ref=main",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.source.ContentsAPIURL(tt.path)
+			if got != tt.expected {
+				t.Errorf("ContentsAPIURL() = %q, want %q", got, tt.expected)
+			}
+		})
+	}
+}
+
 func TestCheckResponseErrors(t *testing.T) {
 	tests := []struct {
 		name       string

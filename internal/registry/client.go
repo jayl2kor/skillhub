@@ -157,6 +157,87 @@ func (c *Client) Download(rawURL, dest, token, username string) error {
 	return nil
 }
 
+// githubContentEntry represents a file or directory from the GitHub Contents API.
+type githubContentEntry struct {
+	Name string `json:"name"`
+	Path string `json:"path"`
+	Type string `json:"type"` // "file" or "dir"
+}
+
+// DownloadDirectory downloads all files from a directory source into destDir.
+// For local paths, it copies the directory tree. For GitHub, it uses the Contents API.
+func (c *Client) DownloadDirectory(source *RepoSource, dirPath, destDir string) error {
+	dirPath = strings.TrimSuffix(dirPath, "/")
+
+	if isLocalPath(source.URL) {
+		srcDir := filepath.Join(source.URL, dirPath)
+		return copyDirectory(srcDir, destDir)
+	}
+
+	return c.downloadGitHubDirectory(source, dirPath, destDir)
+}
+
+func copyDirectory(srcDir, destDir string) error {
+	return filepath.WalkDir(srcDir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+
+		rel, err := filepath.Rel(srcDir, path)
+		if err != nil {
+			return err
+		}
+
+		destPath := filepath.Join(destDir, rel)
+
+		if d.IsDir() {
+			return os.MkdirAll(destPath, 0755)
+		}
+
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("reading %s: %w", path, err)
+		}
+
+		return os.WriteFile(destPath, data, 0644)
+	})
+}
+
+func (c *Client) downloadGitHubDirectory(source *RepoSource, dirPath, destDir string) error {
+	apiURL := source.ContentsAPIURL(dirPath)
+
+	data, err := c.fetch(apiURL, source.Token, source.Username)
+	if err != nil {
+		return fmt.Errorf("listing directory %s: %w", dirPath, err)
+	}
+
+	var entries []githubContentEntry
+	if err := json.Unmarshal(data, &entries); err != nil {
+		return fmt.Errorf("parsing directory listing for %s: %w", dirPath, err)
+	}
+
+	for _, entry := range entries {
+		destPath := filepath.Join(destDir, entry.Name)
+
+		switch entry.Type {
+		case "dir":
+			if err := os.MkdirAll(destPath, 0755); err != nil {
+				return fmt.Errorf("creating directory %s: %w", destPath, err)
+			}
+			if err := c.downloadGitHubDirectory(source, entry.Path, destPath); err != nil {
+				return err
+			}
+		case "file":
+			downloadURL := source.ResolveDownloadURL(entry.Path)
+			if err := c.Download(downloadURL, destPath, source.Token, source.Username); err != nil {
+				return fmt.Errorf("downloading %s: %w", entry.Name, err)
+			}
+		}
+	}
+
+	return nil
+}
+
 func (c *Client) newRequest(rawURL, token, username string) (*http.Request, error) {
 	req, err := http.NewRequest("GET", rawURL, nil)
 	if err != nil {

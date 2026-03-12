@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/jayl2kor/skillhub/internal/config"
 	"github.com/jayl2kor/skillhub/internal/registry"
@@ -75,13 +76,15 @@ func (inst *Installer) Install(name string, force bool, global bool) error {
 	}
 
 	// 5. Resolve download URL and credentials
+	var matchedSource *registry.RepoSource
 	var downloadURL string
 	var token, username string
-	for _, src := range sources {
-		if src.Name == entry.Registry {
-			downloadURL = src.ResolveDownloadURL(entry.DownloadURL)
-			token = src.Token
-			username = src.Username
+	for i := range sources {
+		if sources[i].Name == entry.Registry {
+			matchedSource = &sources[i]
+			downloadURL = sources[i].ResolveDownloadURL(entry.DownloadURL)
+			token = sources[i].Token
+			username = sources[i].Username
 			break
 		}
 	}
@@ -89,31 +92,41 @@ func (inst *Installer) Install(name string, force bool, global bool) error {
 		downloadURL = entry.DownloadURL
 	}
 
-	// 6. Download archive
-	cacheFile := filepath.Join(inst.Paths.CacheDir, fmt.Sprintf("%s-%s.tar.gz", name, entry.Version))
-	inst.logVerbose("downloading %s to %s", downloadURL, cacheFile)
-	if err := inst.Client.Download(downloadURL, cacheFile, token, username); err != nil {
-		return fmt.Errorf("downloading skill: %w", err)
-	}
-
-	// 7. Verify checksum
-	if entry.Checksum != "" {
-		if err := VerifyChecksum(cacheFile, entry.Checksum); err != nil {
-			os.Remove(cacheFile)
-			return fmt.Errorf("checksum verification failed: %w", err)
-		}
-	}
-
-	// 8. Extract to temp directory
+	// 6. Download to temp directory
 	tmpDir, err := os.MkdirTemp(inst.Paths.TmpDir, name+"-*")
 	if err != nil {
 		return fmt.Errorf("creating temp directory: %w", err)
 	}
 	defer os.RemoveAll(tmpDir)
 
-	inst.logVerbose("extracting archive to %s", tmpDir)
-	if err := ExtractTarGz(cacheFile, tmpDir); err != nil {
-		return fmt.Errorf("extracting archive: %w", err)
+	if strings.HasSuffix(entry.DownloadURL, "/") {
+		// Directory mode: download files directly
+		if matchedSource == nil {
+			return fmt.Errorf("registry source not found for skill %q", name)
+		}
+		inst.logVerbose("downloading directory %s", entry.DownloadURL)
+		if err := inst.Client.DownloadDirectory(matchedSource, entry.DownloadURL, tmpDir); err != nil {
+			return fmt.Errorf("downloading skill directory: %w", err)
+		}
+	} else {
+		// Archive mode: download tar.gz, verify, extract
+		cacheFile := filepath.Join(inst.Paths.CacheDir, fmt.Sprintf("%s-%s.tar.gz", name, entry.Version))
+		inst.logVerbose("downloading %s to %s", downloadURL, cacheFile)
+		if err := inst.Client.Download(downloadURL, cacheFile, token, username); err != nil {
+			return fmt.Errorf("downloading skill: %w", err)
+		}
+
+		if entry.Checksum != "" {
+			if err := VerifyChecksum(cacheFile, entry.Checksum); err != nil {
+				os.Remove(cacheFile)
+				return fmt.Errorf("checksum verification failed: %w", err)
+			}
+		}
+
+		inst.logVerbose("extracting archive to %s", tmpDir)
+		if err := ExtractTarGz(cacheFile, tmpDir); err != nil {
+			return fmt.Errorf("extracting archive: %w", err)
+		}
 	}
 
 	// 9. Find and validate manifest (may be in root or subdirectory)
