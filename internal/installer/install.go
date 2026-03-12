@@ -12,21 +12,30 @@ import (
 )
 
 type Installer struct {
-	Paths  *storage.Paths
-	Config *config.Config
-	Client *registry.Client
+	Paths   *storage.Paths
+	Config  *config.Config
+	Client  *registry.Client
+	Verbose func(format string, args ...any)
 }
 
 func NewInstaller(paths *storage.Paths, cfg *config.Config) *Installer {
 	return &Installer{
-		Paths:  paths,
-		Config: cfg,
-		Client: registry.NewClient(),
+		Paths:   paths,
+		Config:  cfg,
+		Client:  registry.NewClient(),
+		Verbose: func(string, ...any) {},
+	}
+}
+
+func (inst *Installer) logVerbose(format string, args ...any) {
+	if inst.Verbose != nil {
+		inst.Verbose(format, args...)
 	}
 }
 
 func (inst *Installer) Install(name string, force bool, global bool) error {
 	// 1. Check if already installed
+	inst.logVerbose("checking if %q is already installed", name)
 	if !force && storage.IsInstalled(inst.Paths, name) {
 		return fmt.Errorf("skill %q is already installed (use --force to reinstall)", name)
 	}
@@ -42,10 +51,12 @@ func (inst *Installer) Install(name string, force bool, global bool) error {
 	}
 
 	// 3. Fetch and merge all indexes
+	inst.logVerbose("fetching indexes from %d registry(ies)", len(sources))
 	idx, err := inst.Client.FetchAllIndexes(sources)
 	if err != nil {
 		return fmt.Errorf("fetching indexes: %w", err)
 	}
+	inst.logVerbose("found %d skill(s) across registries", len(idx.Skills))
 
 	// 4. Find skill
 	entry := idx.Find(name)
@@ -70,6 +81,7 @@ func (inst *Installer) Install(name string, force bool, global bool) error {
 
 	// 6. Download archive
 	cacheFile := filepath.Join(inst.Paths.CacheDir, fmt.Sprintf("%s-%s.tar.gz", name, entry.Version))
+	inst.logVerbose("downloading %s to %s", downloadURL, cacheFile)
 	if err := inst.Client.Download(downloadURL, cacheFile, token, username); err != nil {
 		return fmt.Errorf("downloading skill: %w", err)
 	}
@@ -89,6 +101,7 @@ func (inst *Installer) Install(name string, force bool, global bool) error {
 	}
 	defer os.RemoveAll(tmpDir)
 
+	inst.logVerbose("extracting archive to %s", tmpDir)
 	if err := ExtractTarGz(cacheFile, tmpDir); err != nil {
 		return fmt.Errorf("extracting archive: %w", err)
 	}
@@ -122,6 +135,7 @@ func (inst *Installer) Install(name string, force bool, global bool) error {
 	} else {
 		finalDir = inst.Paths.SkillDir(name)
 	}
+	inst.logVerbose("installing to %s", finalDir)
 	os.MkdirAll(filepath.Dir(finalDir), 0755)
 
 	if force {

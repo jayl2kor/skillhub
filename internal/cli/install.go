@@ -22,6 +22,7 @@ var installCmd = &cobra.Command{
 		}
 
 		inst := installer.NewInstaller(paths, cfg)
+		inst.Verbose = logVerbose
 		return inst.Install(args[0], forceInstall, globalInstall)
 	},
 }

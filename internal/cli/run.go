@@ -18,16 +18,19 @@ var runCmd = &cobra.Command{
 		name := args[0]
 		skillArgs := args[1:]
 
+		logVerbose("loading skill %q", name)
 		s, err := storage.GetInstalledSkill(paths, name)
 		if err != nil {
 			return fmt.Errorf("skill %q is not installed", name)
 		}
 
+		logVerbose("skill type: %s, entry: %s", s.Manifest.Type, s.Manifest.Entry)
 		runner, err := runtime.RunnerFor(s.Manifest.Type)
 		if err != nil {
 			return err
 		}
 
+		logVerbose("executing with runner for type %q", s.Manifest.Type)
 		return runner.Run(context.Background(), *s, skillArgs)
 	},
 }
