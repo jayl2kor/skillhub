@@ -100,7 +100,7 @@ skillhub install code-review --global --tool claude
 | `--tool <type>` | `claude` | Agent type for `--global` install |
 | `--version <ver>` | - | Install a specific version |
 
-When `--global` is used, the skill is installed to the project-level agent directory and requires a `SKILL.md` file in the package.
+When `--global` is used, the skill is installed to the project-level agent directory.
 
 **Supported agents:**
 
@@ -146,7 +146,7 @@ The default branch is auto-detected via GitHub API (falls back to `main`).
 ```
 my-skill/
 ├── skill.json       # Manifest (required)
-├── SKILL.md         # Required for --global install
+├── SKILL.md         # Skill readme (required)
 ├── main.py          # Entry file
 └── helpers/          # Additional files (optional)
 ```

@@ -149,12 +149,10 @@ func (inst *Installer) Install(name string, force bool, global bool) error {
 		return fmt.Errorf("entry file %q not found in skill archive", m.Entry)
 	}
 
-	// 9.5. SKILL.md is required only for Claude Code integration (--global)
-	if global {
-		skillMDPath := filepath.Join(filepath.Dir(manifestPath), "SKILL.md")
-		if _, err := os.Stat(skillMDPath); os.IsNotExist(err) {
-			return fmt.Errorf("skill archive does not contain SKILL.md (required for Claude Code skill)")
-		}
+	// 9.5. SKILL.md is required
+	skillMDPath := filepath.Join(filepath.Dir(manifestPath), "SKILL.md")
+	if _, err := os.Stat(skillMDPath); os.IsNotExist(err) {
+		return fmt.Errorf("skill does not contain SKILL.md")
 	}
 
 	// 10. Determine install target

@@ -54,10 +54,12 @@ var lintCmd = &cobra.Command{
 			}
 		}
 
-		// Warnings
+		// Check SKILL.md exists
 		if _, err := os.Stat(filepath.Join(dir, "SKILL.md")); os.IsNotExist(err) {
-			warnings = append(warnings, "SKILL.md not found (needed for --global install)")
+			errors = append(errors, "SKILL.md not found (required)")
 		}
+
+		// Warnings
 		if m.Author == "" {
 			warnings = append(warnings, "author field is empty")
 		}
