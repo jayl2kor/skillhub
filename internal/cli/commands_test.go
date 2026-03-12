@@ -18,7 +18,7 @@ func TestSubcommandRegistration(t *testing.T) {
 	expected := []string{
 		"init", "list", "doctor", "repo", "search",
 		"info", "install", "run", "update", "remove",
-		"cache", "create",
+		"cache", "create", "lint",
 	}
 
 	commands := make(map[string]bool)
