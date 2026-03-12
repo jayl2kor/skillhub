@@ -33,3 +33,12 @@ func AllAgentNames() []string {
 	}
 	return names
 }
+
+// AllAgentSkillsPaths returns all known agent skills directory paths.
+func AllAgentSkillsPaths() []string {
+	paths := make([]string, 0, len(knownAgents))
+	for _, a := range knownAgents {
+		paths = append(paths, a.SkillsPath)
+	}
+	return paths
+}

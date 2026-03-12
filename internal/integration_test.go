@@ -56,6 +56,7 @@ func TestFullWorkflow(t *testing.T) {
 
 	// Step 1: Init
 	paths := storage.NewPaths(homeDir)
+	paths.ProjectRoot = homeDir // isolate from real project root
 	if err := paths.EnsureDirectories(); err != nil {
 		t.Fatalf("EnsureDirectories: %v", err)
 	}

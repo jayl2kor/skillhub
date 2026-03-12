@@ -15,6 +15,7 @@ func setupTestHome(t *testing.T) *storage.Paths {
 	t.Helper()
 	dir := t.TempDir()
 	p := storage.NewPaths(dir)
+	p.ProjectRoot = dir // isolate from real project root
 	if err := p.EnsureDirectories(); err != nil {
 		t.Fatalf("creating test dirs: %v", err)
 	}

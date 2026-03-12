@@ -7,12 +7,13 @@ import (
 )
 
 type Paths struct {
-	Home      string
-	Config    string
-	SkillsDir string
-	CacheDir  string
-	LogDir    string
-	TmpDir    string
+	Home        string
+	Config      string
+	SkillsDir   string
+	CacheDir    string
+	LogDir      string
+	TmpDir      string
+	ProjectRoot string // project root for local skill lookup; empty means auto-detect
 }
 
 func NewPaths(home string) *Paths {

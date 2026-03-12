@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -19,62 +20,98 @@ func DetectProjectRoot() string {
 	return cwd
 }
 
+func (p *Paths) projectRoot() string {
+	if p.ProjectRoot != "" {
+		return p.ProjectRoot
+	}
+	return DetectProjectRoot()
+}
+
 func ListInstalledSkills(paths *Paths) ([]skill.InstalledSkill, error) {
-	entries, err := os.ReadDir(paths.SkillsDir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
+	seen := make(map[string]bool)
+	var skills []skill.InstalledSkill
+
+	// Global skills
+	if entries, err := os.ReadDir(paths.SkillsDir); err == nil {
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				continue
+			}
+			skillDir := filepath.Join(paths.SkillsDir, entry.Name())
+			if s, err := loadInstalledSkill(skillDir); err == nil {
+				seen[s.Manifest.Name] = true
+				skills = append(skills, *s)
+			}
 		}
-		return nil, err
 	}
 
-	var skills []skill.InstalledSkill
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			continue
-		}
-
-		skillDir := filepath.Join(paths.SkillsDir, entry.Name())
-		manifestPath := filepath.Join(skillDir, "skill.json")
-
-		m, err := skill.LoadManifest(manifestPath)
+	// Local project skills (all agent paths)
+	projectRoot := paths.projectRoot()
+	for _, agentPath := range skill.AllAgentSkillsPaths() {
+		localDir := filepath.Join(projectRoot, agentPath)
+		entries, err := os.ReadDir(localDir)
 		if err != nil {
 			continue
 		}
-
-		installed := skill.InstalledSkill{
-			Manifest: *m,
-			Dir:      skillDir,
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				continue
+			}
+			if seen[entry.Name()] {
+				continue
+			}
+			skillDir := filepath.Join(localDir, entry.Name())
+			if s, err := loadInstalledSkill(skillDir); err == nil {
+				seen[s.Manifest.Name] = true
+				skills = append(skills, *s)
+			}
 		}
-
-		metaPath := filepath.Join(skillDir, ".install.json")
-		if meta, err := skill.LoadInstallMeta(metaPath); err == nil {
-			installed.Meta = *meta
-		}
-
-		skills = append(skills, installed)
 	}
 
 	return skills, nil
 }
 
 func IsInstalled(paths *Paths, name string) bool {
-	// Global check (existing)
+	// Global check
 	manifestPath := filepath.Join(paths.SkillsDir, name, "skill.json")
 	if _, err := os.Stat(manifestPath); err == nil {
 		return true
 	}
-	// Local check (.claude/skills/)
-	projectRoot := DetectProjectRoot()
-	localManifest := filepath.Join(projectRoot, ".claude", "skills", name, "skill.json")
-	_, err := os.Stat(localManifest)
-	return err == nil
+	// Local check (all agent skill paths)
+	projectRoot := paths.projectRoot()
+	for _, agentPath := range skill.AllAgentSkillsPaths() {
+		localManifest := filepath.Join(projectRoot, agentPath, name, "skill.json")
+		if _, err := os.Stat(localManifest); err == nil {
+			return true
+		}
+	}
+	return false
 }
 
 func GetInstalledSkill(paths *Paths, name string) (*skill.InstalledSkill, error) {
+	// Check global path first
 	skillDir := filepath.Join(paths.SkillsDir, name)
 	manifestPath := filepath.Join(skillDir, "skill.json")
 
+	if _, err := os.Stat(manifestPath); err == nil {
+		return loadInstalledSkill(skillDir)
+	}
+
+	// Check local project agent paths
+	projectRoot := paths.projectRoot()
+	for _, agentPath := range skill.AllAgentSkillsPaths() {
+		localDir := filepath.Join(projectRoot, agentPath, name)
+		localManifest := filepath.Join(localDir, "skill.json")
+		if _, err := os.Stat(localManifest); err == nil {
+			return loadInstalledSkill(localDir)
+		}
+	}
+
+	return nil, fmt.Errorf("skill %q is not installed", name)
+}
+
+func loadInstalledSkill(skillDir string) (*skill.InstalledSkill, error) {
+	manifestPath := filepath.Join(skillDir, "skill.json")
 	m, err := skill.LoadManifest(manifestPath)
 	if err != nil {
 		return nil, err
