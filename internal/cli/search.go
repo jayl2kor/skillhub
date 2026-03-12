@@ -10,6 +10,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var searchVersions bool
+
 var searchCmd = &cobra.Command{
 	Use:   "search [query]",
 	Short: "Search for skills in registries (omit query to list all)",
@@ -43,6 +45,18 @@ var searchCmd = &cobra.Command{
 		} else {
 			results = idx.Skills
 		}
+		// Deduplicate by name unless --versions is set
+		if !searchVersions {
+			seen := make(map[string]bool)
+			var deduped []registry.IndexEntry
+			for _, r := range results {
+				if !seen[r.Name] {
+					seen[r.Name] = true
+					deduped = append(deduped, r)
+				}
+			}
+			results = deduped
+		}
 
 		if isStructuredOutput() {
 			return printFormatted(results)
@@ -71,5 +85,6 @@ var searchCmd = &cobra.Command{
 
 func init() {
 	searchCmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "output format (table, json, yaml)")
+	searchCmd.Flags().BoolVar(&searchVersions, "versions", false, "show all available versions")
 	rootCmd.AddCommand(searchCmd)
 }

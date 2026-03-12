@@ -69,6 +69,16 @@ func (idx *Index) Find(name string) *IndexEntry {
 	return nil
 }
 
+// FindVersion returns an entry matching both name and version.
+func (idx *Index) FindVersion(name, version string) *IndexEntry {
+	for _, entry := range idx.Skills {
+		if entry.Name == name && entry.Version == version {
+			return &entry
+		}
+	}
+	return nil
+}
+
 func MergeIndexes(indexes ...*Index) *Index {
 	merged := &Index{}
 	for _, idx := range indexes {
