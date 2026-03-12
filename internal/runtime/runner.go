@@ -15,6 +15,12 @@ func RunnerFor(skillType string) (SkillRunner, error) {
 	switch skillType {
 	case "prompt":
 		return &PromptRunner{}, nil
+	case "shell":
+		return &ExecRunner{Command: "bash"}, nil
+	case "python":
+		return &ExecRunner{Command: "python3"}, nil
+	case "node":
+		return &ExecRunner{Command: "node"}, nil
 	default:
 		return nil, fmt.Errorf("unsupported skill type: %s", skillType)
 	}
