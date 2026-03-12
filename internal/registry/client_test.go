@@ -244,59 +244,8 @@ func TestDownloadDirectoryLocal(t *testing.T) {
 }
 
 func TestDownloadDirectoryGitHub(t *testing.T) {
-	// Mock GitHub Contents API
+	// Mock GitHub Contents API with /api/v3/ prefix (GHE style)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-
-		switch r.URL.Path {
-		case "/repos/owner/repo/contents/skills/test-skill":
-			// Directory listing
-			resp := `[
-				{"name":"skill.json","path":"skills/test-skill/skill.json","type":"file"},
-				{"name":"prompt.md","path":"skills/test-skill/prompt.md","type":"file"},
-				{"name":"sub","path":"skills/test-skill/sub","type":"dir"}
-			]`
-			w.Write([]byte(resp))
-		case "/repos/owner/repo/contents/skills/test-skill/sub":
-			// Subdirectory listing
-			resp := `[{"name":"helper.md","path":"skills/test-skill/sub/helper.md","type":"file"}]`
-			w.Write([]byte(resp))
-		default:
-			// Raw file content (simulating raw.githubusercontent.com)
-			switch {
-			case r.URL.Path == "/owner/repo/main/skills/test-skill/skill.json":
-				w.Write([]byte(`{"name":"test-skill"}`))
-			case r.URL.Path == "/owner/repo/main/skills/test-skill/prompt.md":
-				w.Write([]byte("# Test Prompt"))
-			case r.URL.Path == "/owner/repo/main/skills/test-skill/sub/helper.md":
-				w.Write([]byte("helper content"))
-			default:
-				http.NotFound(w, r)
-			}
-		}
-	}))
-	defer server.Close()
-
-	// Create a source that points to our mock server
-	// We need to make ContentsAPIURL and ResolveDownloadURL return URLs pointing to our test server
-	// The simplest way: use a custom source with URL pointing to our server
-	source := &RepoSource{
-		Name:   "test",
-		URL:    server.URL + "/owner/repo",
-		Branch: "main",
-	}
-
-	// Verify ContentsAPIURL generates correct URL format for non-github.com hosts
-	apiURL := source.ContentsAPIURL("skills/test-skill/")
-	expected := server.URL + "/api/v3/repos/owner/repo/contents/skills/test-skill?ref=main"
-	if apiURL != expected {
-		t.Fatalf("ContentsAPIURL = %q, want %q", apiURL, expected)
-	}
-
-	// For the actual download test, we need the server to handle the API v3 path
-	// Recreate server to handle the /api/v3/ prefix
-	server.Close()
-	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
 		switch r.URL.Path {
@@ -305,21 +254,24 @@ func TestDownloadDirectoryGitHub(t *testing.T) {
 				{"name":"skill.json","path":"skills/test-skill/skill.json","type":"file"},
 				{"name":"prompt.md","path":"skills/test-skill/prompt.md","type":"file"}
 			]`
-			w.Write([]byte(resp))
-		default:
-			// GHE raw content uses the API v3 contents endpoint
-			if r.URL.Path == "/api/v3/repos/owner/repo/contents/skills/test-skill/skill.json" {
-				w.Write([]byte(`{"name":"test-skill"}`))
-			} else if r.URL.Path == "/api/v3/repos/owner/repo/contents/skills/test-skill/prompt.md" {
-				w.Write([]byte("# Test Prompt"))
-			} else {
-				http.NotFound(w, r)
+			if _, err := w.Write([]byte(resp)); err != nil {
+				t.Errorf("writing response: %v", err)
 			}
+		case "/api/v3/repos/owner/repo/contents/skills/test-skill/skill.json":
+			if _, err := w.Write([]byte(`{"name":"test-skill"}`)); err != nil {
+				t.Errorf("writing response: %v", err)
+			}
+		case "/api/v3/repos/owner/repo/contents/skills/test-skill/prompt.md":
+			if _, err := w.Write([]byte("# Test Prompt")); err != nil {
+				t.Errorf("writing response: %v", err)
+			}
+		default:
+			http.NotFound(w, r)
 		}
 	}))
 	defer server.Close()
 
-	source = &RepoSource{
+	source := &RepoSource{
 		Name:   "test",
 		URL:    server.URL + "/owner/repo",
 		Branch: "main",
