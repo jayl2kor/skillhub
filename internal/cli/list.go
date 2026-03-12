@@ -19,6 +19,20 @@ var listCmd = &cobra.Command{
 			return fmt.Errorf("listing skills: %w", err)
 		}
 
+		if isStructuredOutput() {
+			type entry struct {
+				Name    string `json:"name" yaml:"name"`
+				Version string `json:"version" yaml:"version"`
+				Type    string `json:"type" yaml:"type"`
+				Dir     string `json:"dir" yaml:"dir"`
+			}
+			out := make([]entry, len(skills))
+			for i, s := range skills {
+				out[i] = entry{s.Manifest.Name, s.Manifest.Version, s.Manifest.Type, s.Dir}
+			}
+			return printFormatted(out)
+		}
+
 		if len(skills) == 0 {
 			fmt.Println("No skills installed.")
 			return nil
@@ -36,5 +50,6 @@ var listCmd = &cobra.Command{
 }
 
 func init() {
+	listCmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "output format (table, json, yaml)")
 	rootCmd.AddCommand(listCmd)
 }

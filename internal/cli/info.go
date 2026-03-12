@@ -22,6 +22,9 @@ var infoCmd = &cobra.Command{
 		if installed {
 			s, err := storage.GetInstalledSkill(paths, name)
 			if err == nil {
+				if isStructuredOutput() {
+					return printFormatted(s)
+				}
 				fmt.Printf("Name:        %s\n", s.Manifest.Name)
 				fmt.Printf("Version:     %s\n", s.Manifest.Version)
 				fmt.Printf("Description: %s\n", s.Manifest.Description)
@@ -73,6 +76,10 @@ var infoCmd = &cobra.Command{
 			return fmt.Errorf("skill %q not found", name)
 		}
 
+		if isStructuredOutput() {
+			return printFormatted(entry)
+		}
+
 		fmt.Printf("Name:        %s\n", entry.Name)
 		fmt.Printf("Version:     %s\n", entry.Version)
 		fmt.Printf("Description: %s\n", entry.Description)
@@ -87,5 +94,6 @@ var infoCmd = &cobra.Command{
 }
 
 func init() {
+	infoCmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "output format (table, json, yaml)")
 	rootCmd.AddCommand(infoCmd)
 }
