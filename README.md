@@ -50,6 +50,7 @@ skillhub install code-review --global --tool claude
 | `create <name>` | Scaffold a new skill project |
 | `lint [dir]` | Validate skill structure |
 | `package [dir]` | Build a skill archive (.tar.gz) |
+| `pull <skill>` | Download skill archive without installing |
 | `doctor` | Check workspace health |
 | `cache list` | List cached download files |
 | `cache clean` | Remove all cached files |
