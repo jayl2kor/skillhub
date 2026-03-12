@@ -1,0 +1,9 @@
+{
+  "name": "code-review",
+  "version": "1.0.0",
+  "description": "Review code changes and produce structured feedback",
+  "entry": "prompt.md",
+  "type": "prompt",
+  "tags": ["engineering", "review"],
+  "author": "platform-team"
+}
