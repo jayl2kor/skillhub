@@ -147,10 +147,14 @@ func (inst *Installer) Install(name string, force bool, global bool) error {
 		finalDir = inst.Paths.SkillDir(name)
 	}
 	inst.logVerbose("installing to %s", finalDir)
-	os.MkdirAll(filepath.Dir(finalDir), 0755)
+	if err := os.MkdirAll(filepath.Dir(finalDir), 0755); err != nil {
+		return fmt.Errorf("creating install directory: %w", err)
+	}
 
 	if force {
-		os.RemoveAll(finalDir)
+		if err := os.RemoveAll(finalDir); err != nil {
+			return fmt.Errorf("removing existing skill for reinstall: %w", err)
+		}
 	}
 
 	// The source is the directory containing skill.json
