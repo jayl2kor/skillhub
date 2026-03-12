@@ -63,7 +63,7 @@ func ExtractTarGz(archivePath string, destDir string) error {
 				return fmt.Errorf("creating file %s: %w", name, err)
 			}
 
-			if _, err := io.Copy(outFile, io.LimitReader(tr, header.Size+1)); err != nil {
+			if _, err := io.Copy(outFile, io.LimitReader(tr, header.Size)); err != nil {
 				outFile.Close()
 				return fmt.Errorf("writing file %s: %w", name, err)
 			}
