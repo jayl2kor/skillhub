@@ -152,7 +152,9 @@ func (inst *Installer) Install(name string, force bool, global bool) error {
 	}
 
 	if force {
-		os.RemoveAll(finalDir)
+		if err := os.RemoveAll(finalDir); err != nil {
+			return fmt.Errorf("removing existing skill for reinstall: %w", err)
+		}
 	}
 
 	// The source is the directory containing skill.json
