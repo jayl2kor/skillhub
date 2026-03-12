@@ -40,7 +40,9 @@ func TestFetchIndexLocal(t *testing.T) {
 func TestFetchIndexHTTP(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"skills": [{"name": "remote", "version": "2.0.0", "description": "remote skill", "download_url": "remote.tar.gz"}]}`))
+		if _, err := w.Write([]byte(`{"skills": [{"name": "remote", "version": "2.0.0", "description": "remote skill", "download_url": "remote.tar.gz"}]}`)); err != nil {
+			t.Errorf("writing response: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -66,10 +68,14 @@ func TestFetchAllIndexes(t *testing.T) {
 	dir1 := t.TempDir()
 	dir2 := t.TempDir()
 
-	os.WriteFile(filepath.Join(dir1, "index.json"),
-		[]byte(`{"skills": [{"name": "a", "version": "1.0.0", "description": "skill a", "download_url": "a.tar.gz"}]}`), 0644)
-	os.WriteFile(filepath.Join(dir2, "index.json"),
-		[]byte(`{"skills": [{"name": "b", "version": "2.0.0", "description": "skill b", "download_url": "b.tar.gz"}]}`), 0644)
+	if err := os.WriteFile(filepath.Join(dir1, "index.json"),
+		[]byte(`{"skills": [{"name": "a", "version": "1.0.0", "description": "skill a", "download_url": "a.tar.gz"}]}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(dir2, "index.json"),
+		[]byte(`{"skills": [{"name": "b", "version": "2.0.0", "description": "skill b", "download_url": "b.tar.gz"}]}`), 0644); err != nil {
+		t.Fatal(err)
+	}
 
 	client := NewClient()
 	sources := []RepoSource{
@@ -89,7 +95,9 @@ func TestFetchAllIndexes(t *testing.T) {
 
 func TestDownload(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("file content"))
+		if _, err := w.Write([]byte("file content")); err != nil {
+			t.Errorf("writing response: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -118,7 +126,9 @@ func TestDownloadExceedsMaxSize(t *testing.T) {
 		// Write maxDownloadSize+1 bytes would be impractical in a test,
 		// so we test that the limit reader mechanism works by verifying
 		// the download succeeds for normal sizes
-		w.Write([]byte("small content"))
+		if _, err := w.Write([]byte("small content")); err != nil {
+			t.Errorf("writing response: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -139,7 +149,9 @@ func TestFetchExceedsMaxAPIResponseSize(t *testing.T) {
 	}
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write(largeBody)
+		if _, err := w.Write(largeBody); err != nil {
+			t.Errorf("writing response: %v", err)
+		}
 	}))
 	defer server.Close()
 
@@ -147,9 +159,6 @@ func TestFetchExceedsMaxAPIResponseSize(t *testing.T) {
 	_, err := client.fetch(server.URL, "", "")
 	if err == nil {
 		t.Fatal("expected error for oversized API response")
-	}
-	if !testing.Verbose() {
-		// Just check it contains the right message
 	}
 }
 
