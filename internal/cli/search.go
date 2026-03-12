@@ -30,10 +30,12 @@ var searchCmd = &cobra.Command{
 		}
 
 		client := registry.NewClient()
+		logVerbose("fetching indexes from %d registry(ies)", len(sources))
 		idx, err := client.FetchAllIndexes(sources)
 		if err != nil {
 			return fmt.Errorf("fetching indexes: %w", err)
 		}
+		logVerbose("found %d skill(s) total", len(idx.Skills))
 
 		var results []registry.IndexEntry
 		if len(args) > 0 {

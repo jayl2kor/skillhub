@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/jayl2kor/skillhub/internal/storage"
 	"github.com/jayl2kor/skillhub/pkg/version"
@@ -35,4 +36,10 @@ func init() {
 
 func Execute() error {
 	return rootCmd.Execute()
+}
+
+func logVerbose(format string, args ...any) {
+	if verbose {
+		fmt.Fprintf(os.Stderr, "[verbose] "+format+"\n", args...)
+	}
 }
