@@ -21,33 +21,52 @@ var (
 
 var repoIndexCmd = &cobra.Command{
 	Use:   "index <dir>",
-	Short: "Generate index.json from packaged skills",
+	Short: "Generate index.json from skill directories and archives",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		dir := args[0]
 
-		// Find all .tar.gz files
-		archives, err := filepath.Glob(filepath.Join(dir, "*.tar.gz"))
+		var entries []registry.IndexEntry
+		seen := make(map[string]bool)
+
+		// 1. Scan for skill directories (subdirectories containing skill.json)
+		subdirs, err := os.ReadDir(dir)
 		if err != nil {
 			return fmt.Errorf("scanning directory: %w", err)
 		}
-		if len(archives) == 0 {
-			return fmt.Errorf("no .tar.gz files found in %s", dir)
+		for _, d := range subdirs {
+			if !d.IsDir() {
+				continue
+			}
+			if _, err := os.Stat(filepath.Join(dir, d.Name(), "skill.json")); err != nil {
+				continue
+			}
+			entry, err := indexSkillDir(filepath.Join(dir, d.Name()))
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "[WARN] skipping directory %s: %v\n", d.Name(), err)
+				continue
+			}
+			entries = append(entries, *entry)
+			seen[entry.Name] = true
 		}
 
-		var entries []registry.IndexEntry
-
+		// 2. Scan for .tar.gz archives (skip if directory already found for same skill)
+		archives, _ := filepath.Glob(filepath.Join(dir, "*.tar.gz"))
 		for _, archivePath := range archives {
 			entry, err := indexArchive(archivePath)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "[WARN] skipping %s: %v\n", filepath.Base(archivePath), err)
 				continue
 			}
+			if seen[entry.Name] {
+				continue
+			}
 			entries = append(entries, *entry)
+			seen[entry.Name] = true
 		}
 
 		if len(entries) == 0 {
-			return fmt.Errorf("no valid skill archives found")
+			return fmt.Errorf("no skill directories or archives found in %s", dir)
 		}
 
 		// Merge with existing index if requested
@@ -93,6 +112,27 @@ func init() {
 	repoIndexCmd.Flags().StringVar(&repoIndexMerge, "merge", "", "merge with existing index file")
 	repoIndexCmd.Flags().StringVar(&repoIndexURL, "url", "", "base URL prefix for download_url fields")
 	repoCmd.AddCommand(repoIndexCmd)
+}
+
+func indexSkillDir(dirPath string) (*registry.IndexEntry, error) {
+	m, err := skill.LoadManifest(filepath.Join(dirPath, "skill.json"))
+	if err != nil {
+		return nil, err
+	}
+
+	dirName := filepath.Base(dirPath)
+	downloadURL := dirName + "/"
+	if repoIndexURL != "" {
+		downloadURL = strings.TrimSuffix(repoIndexURL, "/") + "/" + dirName + "/"
+	}
+
+	return &registry.IndexEntry{
+		Name:        m.Name,
+		Version:     m.Version,
+		Description: m.Description,
+		Tags:        m.Tags,
+		DownloadURL: downloadURL,
+	}, nil
 }
 
 func indexArchive(archivePath string) (*registry.IndexEntry, error) {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/jayl2kor/skillhub/internal/installer"
 	"github.com/jayl2kor/skillhub/internal/registry"
@@ -50,13 +51,15 @@ var pullCmd = &cobra.Command{
 		}
 
 		// Resolve download URL and credentials
+		var matchedSource *registry.RepoSource
 		var downloadURL string
 		var token, username string
-		for _, src := range sources {
-			if src.Name == entry.Registry {
-				downloadURL = src.ResolveDownloadURL(entry.DownloadURL)
-				token = src.Token
-				username = src.Username
+		for i := range sources {
+			if sources[i].Name == entry.Registry {
+				matchedSource = &sources[i]
+				downloadURL = sources[i].ResolveDownloadURL(entry.DownloadURL)
+				token = sources[i].Token
+				username = sources[i].Username
 				break
 			}
 		}
@@ -64,36 +67,55 @@ var pullCmd = &cobra.Command{
 			downloadURL = entry.DownloadURL
 		}
 
-		// Download
-		filename := fmt.Sprintf("%s-%s.tar.gz", entry.Name, entry.Version)
-		destPath := filepath.Join(pullDest, filename)
-
-		logVerbose("downloading %s", downloadURL)
-		if err := client.Download(downloadURL, destPath, token, username); err != nil {
-			return fmt.Errorf("downloading skill: %w", err)
-		}
-
-		// Verify checksum
-		if pullVerify && entry.Checksum != "" {
-			if err := installer.VerifyChecksum(destPath, entry.Checksum); err != nil {
-				os.Remove(destPath)
-				return fmt.Errorf("checksum verification failed: %w", err)
+		if strings.HasSuffix(entry.DownloadURL, "/") {
+			// Directory mode: download skill directory
+			if matchedSource == nil {
+				return fmt.Errorf("registry source not found for skill %q", name)
 			}
-			fmt.Println("Checksum OK")
-		}
 
-		fmt.Printf("Downloaded %s\n", destPath)
+			destPath := filepath.Join(pullDest, name)
+			if err := os.MkdirAll(destPath, 0755); err != nil {
+				return fmt.Errorf("creating destination directory: %w", err)
+			}
 
-		// Extract if requested
-		if pullUntar {
-			extractDir := filepath.Join(pullDest, name)
-			if err := os.MkdirAll(extractDir, 0755); err != nil {
-				return fmt.Errorf("creating extract directory: %w", err)
+			logVerbose("downloading directory %s", entry.DownloadURL)
+			if err := client.DownloadDirectory(matchedSource, entry.DownloadURL, destPath); err != nil {
+				return fmt.Errorf("downloading skill directory: %w", err)
 			}
-			if err := installer.ExtractTarGz(destPath, extractDir); err != nil {
-				return fmt.Errorf("extracting archive: %w", err)
+
+			fmt.Printf("Downloaded %s to %s\n", name, destPath)
+		} else {
+			// Archive mode: download tar.gz
+			filename := fmt.Sprintf("%s-%s.tar.gz", entry.Name, entry.Version)
+			destPath := filepath.Join(pullDest, filename)
+
+			logVerbose("downloading %s", downloadURL)
+			if err := client.Download(downloadURL, destPath, token, username); err != nil {
+				return fmt.Errorf("downloading skill: %w", err)
 			}
-			fmt.Printf("Extracted to %s\n", extractDir)
+
+			// Verify checksum
+			if pullVerify && entry.Checksum != "" {
+				if err := installer.VerifyChecksum(destPath, entry.Checksum); err != nil {
+					os.Remove(destPath)
+					return fmt.Errorf("checksum verification failed: %w", err)
+				}
+				fmt.Println("Checksum OK")
+			}
+
+			fmt.Printf("Downloaded %s\n", destPath)
+
+			// Extract if requested
+			if pullUntar {
+				extractDir := filepath.Join(pullDest, name)
+				if err := os.MkdirAll(extractDir, 0755); err != nil {
+					return fmt.Errorf("creating extract directory: %w", err)
+				}
+				if err := installer.ExtractTarGz(destPath, extractDir); err != nil {
+					return fmt.Errorf("extracting archive: %w", err)
+				}
+				fmt.Printf("Extracted to %s\n", extractDir)
+			}
 		}
 
 		return nil

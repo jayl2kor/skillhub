@@ -5,14 +5,6 @@
       "version": "1.0.0",
       "description": "Review code changes and produce structured feedback",
       "tags": ["engineering", "review"],
-      "download_url": "packages/code-review-1.0.0.tar.gz",
-      "checksum": ""
-    },
-    {
-      "name": "code-review-dir",
-      "version": "1.0.0",
-      "description": "Review code changes (directory-based, no tar.gz required)",
-      "tags": ["engineering", "review"],
       "download_url": "skills/code-review/",
       "checksum": ""
     }
