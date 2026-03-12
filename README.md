@@ -55,6 +55,7 @@ skillhub install code-review --global --tool claude
 | `cache clean` | Remove all cached files |
 | `repo add <url>` | Add a skill registry |
 | `repo list` | List configured registries |
+| `verify <archive>` | Verify a skill archive |
 | `repo remove <name>` | Remove a registry |
 | `completion <shell>` | Generate shell autocompletion (bash/zsh/fish/powershell) |
 
