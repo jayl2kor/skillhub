@@ -2,8 +2,8 @@ package cli
 
 import (
 	"fmt"
-	"text/tabwriter"
 	"os"
+	"text/tabwriter"
 
 	"github.com/jayl2kor/skillhub/internal/storage"
 

@@ -17,9 +17,9 @@ var (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "skillhub",
-	Short: "A lightweight package manager for AI/agent skills",
-	Long:  "skillhub manages the discovery, installation, execution, and lifecycle of reusable AI/agent skills.",
+	Use:     "skillhub",
+	Short:   "A lightweight package manager for AI/agent skills",
+	Long:    "skillhub manages the discovery, installation, execution, and lifecycle of reusable AI/agent skills.",
 	Version: fmt.Sprintf("%s (commit: %s, built: %s)", version.Version, version.GitCommit, version.BuildDate),
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		if homeDir == "" {
