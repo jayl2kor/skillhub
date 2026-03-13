@@ -105,6 +105,9 @@ func (inst *Installer) Install(name string, force bool, global bool) error {
 			return fmt.Errorf("registry source not found for skill %q", name)
 		}
 		inst.logVerbose("downloading directory %s", entry.DownloadURL)
+		inst.Client.OnProgress = func(filename string) {
+			inst.logVerbose("  %s", filename)
+		}
 		if err := inst.Client.DownloadDirectory(matchedSource, entry.DownloadURL, tmpDir); err != nil {
 			return fmt.Errorf("downloading skill directory: %w", err)
 		}
