@@ -72,6 +72,12 @@ var pullCmd = &cobra.Command{
 			if matchedSource == nil {
 				return fmt.Errorf("registry source not found for skill %q", name)
 			}
+			if pullUntar {
+				fmt.Fprintln(os.Stderr, "warning: --untar has no effect for directory-based skills")
+			}
+			if pullVerify {
+				fmt.Fprintln(os.Stderr, "warning: --verify is not supported for directory-based skills (no checksum)")
+			}
 
 			destPath := filepath.Join(pullDest, name)
 			if err := os.MkdirAll(destPath, 0755); err != nil {
