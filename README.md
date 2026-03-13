@@ -70,7 +70,7 @@ skillhub install code-review --global --tool claude
 | `create <name>` | Scaffold a new skill project |
 | `lint [dir]` | Validate skill structure |
 | `package [dir]` | Build a skill archive (.tar.gz) |
-| `pull <skill>` | Download skill archive without installing |
+| `pull <skill>` | Download a skill without installing |
 | `doctor` | Check workspace health |
 | `cache list` | List cached download files |
 | `cache clean` | Remove all cached files |
@@ -79,7 +79,7 @@ skillhub install code-review --global --tool claude
 | `verify <archive>` | Verify a skill archive |
 | `repo remove <name>` | Remove a registry |
 | `completion <shell>` | Generate shell autocompletion (bash/zsh/fish/powershell) |
-| `repo index <dir>` | Generate index.json from skill archives |
+| `repo index <dir>` | Generate index.json from skill directories and archives |
 | `repo update [name]` | Fetch and cache registry indexes |
 
 ### Global Flags
@@ -100,7 +100,7 @@ skillhub install code-review --global --tool claude
 | `--tool <type>` | `claude` | Agent type for `--global` install |
 | `--version <ver>` | - | Install a specific version |
 
-When `--global` is used, the skill is installed to the project-level agent directory and requires a `SKILL.md` file in the package.
+When `--global` is used, the skill is installed to the project-level agent directory.
 
 **Supported agents:**
 
@@ -146,7 +146,7 @@ The default branch is auto-detected via GitHub API (falls back to `main`).
 ```
 my-skill/
 ├── skill.json       # Manifest (required)
-├── SKILL.md         # Required for --global install
+├── SKILL.md         # Skill readme (required)
 ├── main.py          # Entry file
 └── helpers/          # Additional files (optional)
 ```
@@ -179,17 +179,21 @@ my-skill/
 | `license` | No | License identifier |
 | `compatible_agents` | No | List of compatible agent types |
 
-### Packaging and Publishing
+### Publishing
 
-```bash
-# Create archive
-tar czf my-skill-1.0.0.tar.gz my-skill/
+The recommended way to publish skills is **directory-based** — just place your skill folder in the registry and point `index.json` at it. No packaging step required.
 
-# Generate checksum (optional)
-shasum -a 256 packages/my-skill-1.0.0.tar.gz
+```
+my-registry/
+├── index.json
+└── skills/
+    └── my-skill/
+        ├── skill.json
+        ├── main.py
+        └── SKILL.md
 ```
 
-Add the entry to your registry's `index.json`:
+Add the entry to your registry's `index.json` (note the trailing `/`):
 
 ```json
 {
@@ -199,22 +203,53 @@ Add the entry to your registry's `index.json`:
       "version": "1.0.0",
       "description": "What this skill does",
       "tags": ["category"],
-      "download_url": "packages/my-skill-1.0.0.tar.gz",
-      "checksum": "sha256:abc123..."
+      "download_url": "skills/my-skill/"
     }
   ]
 }
 ```
 
+Generate `index.json` automatically from skill directories:
+
+```bash
+skillhub repo index skills/
+```
+
+#### Archive mode (alternative)
+
+If you prefer distributable archives, you can package skills as `.tar.gz`:
+
+```bash
+skillhub package my-skill/
+# or manually:
+tar czf my-skill-1.0.0.tar.gz my-skill/
+```
+
+```json
+{
+  "name": "my-skill",
+  "version": "1.0.0",
+  "download_url": "packages/my-skill-1.0.0.tar.gz",
+  "checksum": "sha256:abc123..."
+}
+```
+
+Both formats can coexist in the same `index.json`.
+
 ## Registry Guide
 
-A registry is a directory (local or Git-hosted) containing an `index.json` and skill archives.
+A registry is a directory (local or Git-hosted) containing an `index.json` and skill directories (or archives).
 
 ```
 my-registry/
 ├── index.json
-└── packages/
-    └── my-skill-1.0.0.tar.gz
+└── skills/
+    ├── code-review/
+    │   ├── skill.json
+    │   └── prompt.md
+    └── lint-fix/
+        ├── skill.json
+        └── main.sh
 ```
 
 **Supported URL formats:**
@@ -256,8 +291,8 @@ Config files with tokens are saved with `0600` permissions.
 
 ## Security
 
-- **Archive extraction**: Path traversal prevention, absolute path rejection, symlink blocking, 100MB per-file limit
-- **Checksum verification**: SHA256 validation when `checksum` is provided in `index.json`
+- **Archive extraction**: Path traversal prevention, absolute path rejection, symlink blocking, 100MB per-file limit (archive mode)
+- **Checksum verification**: SHA256 validation when `checksum` is provided in `index.json` (archive mode)
 - **Entry path validation**: Manifest entry paths cannot escape the skill directory
 - **Credential protection**: Config file stored with `0600` permissions
 - **Download limits**: 500MB max archive size, 10MB max API response size

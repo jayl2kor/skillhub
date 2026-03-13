@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/jayl2kor/skillhub/internal/installer"
 	"github.com/jayl2kor/skillhub/internal/registry"
@@ -172,13 +173,15 @@ func resolveSkillDir(name string) (dir string, cleanup func(), err error) {
 	}
 
 	// Resolve download URL and credentials
+	var matchedSource *registry.RepoSource
 	var downloadURL string
 	var token, username string
-	for _, src := range sources {
-		if src.Name == entry.Registry {
-			downloadURL = src.ResolveDownloadURL(entry.DownloadURL)
-			token = src.Token
-			username = src.Username
+	for i := range sources {
+		if sources[i].Name == entry.Registry {
+			matchedSource = &sources[i]
+			downloadURL = sources[i].ResolveDownloadURL(entry.DownloadURL)
+			token = sources[i].Token
+			username = sources[i].Username
 			break
 		}
 	}
@@ -186,30 +189,43 @@ func resolveSkillDir(name string) (dir string, cleanup func(), err error) {
 		downloadURL = entry.DownloadURL
 	}
 
-	// Download archive to temp
+	// Download to temp
 	tmpDir, err := os.MkdirTemp("", "skillhub-show-*")
 	if err != nil {
 		return "", noop, fmt.Errorf("creating temp directory: %w", err)
 	}
 	cleanupFn := func() { os.RemoveAll(tmpDir) }
 
-	archivePath := filepath.Join(tmpDir, "archive.tar.gz")
-	logVerbose("downloading %s", downloadURL)
-	if err := client.Download(downloadURL, archivePath, token, username); err != nil {
-		cleanupFn()
-		return "", noop, fmt.Errorf("downloading skill: %w", err)
-	}
-
-	// Extract
 	extractDir := filepath.Join(tmpDir, "extracted")
 	if err := os.MkdirAll(extractDir, 0755); err != nil {
 		cleanupFn()
 		return "", noop, fmt.Errorf("creating extract directory: %w", err)
 	}
 
-	if err := installer.ExtractTarGz(archivePath, extractDir); err != nil {
-		cleanupFn()
-		return "", noop, fmt.Errorf("extracting archive: %w", err)
+	if strings.HasSuffix(entry.DownloadURL, "/") {
+		// Directory mode
+		if matchedSource == nil {
+			cleanupFn()
+			return "", noop, fmt.Errorf("registry source not found for skill %q", name)
+		}
+		logVerbose("downloading directory %s", entry.DownloadURL)
+		if err := client.DownloadDirectory(matchedSource, entry.DownloadURL, extractDir); err != nil {
+			cleanupFn()
+			return "", noop, fmt.Errorf("downloading skill directory: %w", err)
+		}
+	} else {
+		// Archive mode
+		archivePath := filepath.Join(tmpDir, "archive.tar.gz")
+		logVerbose("downloading %s", downloadURL)
+		if err := client.Download(downloadURL, archivePath, token, username); err != nil {
+			cleanupFn()
+			return "", noop, fmt.Errorf("downloading skill: %w", err)
+		}
+
+		if err := installer.ExtractTarGz(archivePath, extractDir); err != nil {
+			cleanupFn()
+			return "", noop, fmt.Errorf("extracting archive: %w", err)
+		}
 	}
 
 	// Find manifest (same logic as installer.findManifest)
