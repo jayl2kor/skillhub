@@ -13,12 +13,13 @@ import (
 )
 
 type Installer struct {
-	Paths     *storage.Paths
-	Config    *config.Config
-	Client    *registry.Client
-	Verbose   func(format string, args ...any)
-	AgentTool string // agent type for --global install path (default: "claude")
-	Version   string // specific version to install (empty = latest)
+	Paths      *storage.Paths
+	Config     *config.Config
+	Client     *registry.Client
+	Verbose    func(format string, args ...any)
+	AgentTool  string // agent type for --global install path (default: "claude")
+	Version    string // specific version to install (empty = latest)
+	RepoFilter string // filter by registry name (empty = all)
 }
 
 func NewInstaller(paths *storage.Paths, cfg *config.Config) *Installer {
@@ -43,14 +44,29 @@ func (inst *Installer) Install(name string, force bool, global bool) error {
 		return fmt.Errorf("skill %q is already installed (use --force to reinstall)", name)
 	}
 
-	// 2. Build registry sources
-	sources := make([]registry.RepoSource, len(inst.Config.Registries))
-	for i, r := range inst.Config.Registries {
-		sources[i] = registry.RepoSource{Name: r.Name, URL: r.URL, Token: r.Token, Username: r.Username, Branch: r.Branch}
+	// 2. Build registry sources (optionally filtered by RepoFilter)
+	var entries []config.RegistryEntry
+	if inst.RepoFilter != "" {
+		for _, r := range inst.Config.Registries {
+			if r.Name == inst.RepoFilter {
+				entries = append(entries, r)
+				break
+			}
+		}
+		if len(entries) == 0 {
+			return fmt.Errorf("registry %q not found; check 'skillhub repo list'", inst.RepoFilter)
+		}
+	} else {
+		entries = inst.Config.Registries
 	}
 
-	if len(sources) == 0 {
+	if len(entries) == 0 {
 		return fmt.Errorf("no registries configured; use 'skillhub repo add' to add one")
+	}
+
+	sources := make([]registry.RepoSource, len(entries))
+	for i, r := range entries {
+		sources[i] = registry.RepoSource{Name: r.Name, URL: r.URL, Token: r.Token, Username: r.Username, Branch: r.Branch}
 	}
 
 	// 3. Fetch and merge all indexes

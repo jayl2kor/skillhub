@@ -10,7 +10,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var searchVersions bool
+var (
+	searchVersions bool
+	searchRepo     string
+)
 
 var searchCmd = &cobra.Command{
 	Use:   "search [query]",
@@ -22,13 +25,9 @@ var searchCmd = &cobra.Command{
 			return err
 		}
 
-		if len(cfg.Registries) == 0 {
-			return fmt.Errorf("no registries configured; use 'skillhub repo add' to add one")
-		}
-
-		sources := make([]registry.RepoSource, len(cfg.Registries))
-		for i, r := range cfg.Registries {
-			sources[i] = registry.RepoSource{Name: r.Name, URL: r.URL, Token: r.Token, Username: r.Username, Branch: r.Branch}
+		sources, err := registrySources(cfg, searchRepo)
+		if err != nil {
+			return err
 		}
 
 		client := registry.NewClient()
@@ -67,15 +66,25 @@ var searchCmd = &cobra.Command{
 			return nil
 		}
 
+		multiRegistry := len(cfg.Registries) > 1
+
 		w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
-		fmt.Fprintln(w, "NAME\tVERSION\tDESCRIPTION")
+		if multiRegistry {
+			fmt.Fprintln(w, "NAME\tVERSION\tREGISTRY\tDESCRIPTION")
+		} else {
+			fmt.Fprintln(w, "NAME\tVERSION\tDESCRIPTION")
+		}
 		for _, r := range results {
 			desc := r.Description
 			runes := []rune(desc)
 			if len(runes) > 60 {
 				desc = string(runes[:57]) + "..."
 			}
-			fmt.Fprintf(w, "%s\t%s\t%s\n", r.Name, r.Version, desc)
+			if multiRegistry {
+				fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", r.Name, r.Version, r.Registry, desc)
+			} else {
+				fmt.Fprintf(w, "%s\t%s\t%s\n", r.Name, r.Version, desc)
+			}
 		}
 		w.Flush()
 
@@ -86,5 +95,6 @@ var searchCmd = &cobra.Command{
 func init() {
 	searchCmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "output format (table, json, yaml)")
 	searchCmd.Flags().BoolVarP(&searchVersions, "versions", "V", false, "show all available versions")
+	searchCmd.Flags().StringVarP(&searchRepo, "repo", "r", "", "filter by registry name")
 	rootCmd.AddCommand(searchCmd)
 }
