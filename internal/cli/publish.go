@@ -14,6 +14,7 @@ import (
 var (
 	publishRepo    string
 	publishVersion string
+	publishToken   string
 	publishForce   bool
 	publishDryRun  bool
 )
@@ -98,6 +99,12 @@ var publishCmd = &cobra.Command{
 			return fmt.Errorf("multiple registries configured; use --repo to specify")
 		}
 
+		// --token flag overrides config token (useful for public registries
+		// that were added without a token but need write access for publish)
+		if publishToken != "" {
+			reg.Token = publishToken
+		}
+
 		// Directory path in registry: skills/{name}/
 		destPrefix := "skills/" + m.Name
 
@@ -109,7 +116,7 @@ var publishCmd = &cobra.Command{
 		client := registry.NewClient()
 
 		if !reg.IsLocal() && reg.Token == "" && reg.Username == "" {
-			return fmt.Errorf("registry %q has no credentials; publishing to GitHub requires --token", reg.Name)
+			return fmt.Errorf("registry %q has no credentials for write access; use --token <PAT> or configure via 'skillhub repo add <url> --token <PAT>'", reg.Name)
 		}
 
 		// Check version conflict via index
@@ -154,6 +161,7 @@ var publishCmd = &cobra.Command{
 func init() {
 	publishCmd.Flags().StringVar(&publishRepo, "repo", "", "target registry name")
 	publishCmd.Flags().StringVar(&publishVersion, "version", "", "override version from skill.json")
+	publishCmd.Flags().StringVar(&publishToken, "token", "", "GitHub personal access token (overrides config)")
 	publishCmd.Flags().BoolVar(&publishForce, "force", false, "overwrite existing version")
 	publishCmd.Flags().BoolVar(&publishDryRun, "dry-run", false, "validate without uploading")
 	rootCmd.AddCommand(publishCmd)
