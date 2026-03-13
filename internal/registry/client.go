@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -219,6 +220,9 @@ func (c *Client) copyDirectory(srcDir, destDir string) error {
 	})
 }
 
+// maxConcurrentDownloads limits the number of concurrent file downloads.
+const maxConcurrentDownloads = 8
+
 func (c *Client) downloadGitHubDirectory(source *RepoSource, dirPath, destDir string) error {
 	apiURL := source.ContentsAPIURL(dirPath)
 
@@ -232,29 +236,66 @@ func (c *Client) downloadGitHubDirectory(source *RepoSource, dirPath, destDir st
 		return fmt.Errorf("parsing directory listing for %s: %w", dirPath, err)
 	}
 
+	// Separate directories and files
+	var dirs, files []githubContentEntry
 	for _, entry := range entries {
-		destPath := filepath.Join(destDir, entry.Name)
-
 		switch entry.Type {
 		case "dir":
-			if err := os.MkdirAll(destPath, 0755); err != nil {
-				return fmt.Errorf("creating directory %s: %w", destPath, err)
-			}
-			if err := c.downloadGitHubDirectory(source, entry.Path, destPath); err != nil {
-				return err
-			}
+			dirs = append(dirs, entry)
 		case "file":
+			files = append(files, entry)
+		}
+	}
+
+	// Create directories and recurse (sequential — dirs must exist before files)
+	for _, entry := range dirs {
+		destPath := filepath.Join(destDir, entry.Name)
+		if err := os.MkdirAll(destPath, 0755); err != nil {
+			return fmt.Errorf("creating directory %s: %w", destPath, err)
+		}
+		if err := c.downloadGitHubDirectory(source, entry.Path, destPath); err != nil {
+			return err
+		}
+	}
+
+	// Download files concurrently with bounded worker pool
+	sem := make(chan struct{}, maxConcurrentDownloads)
+	var mu sync.Mutex
+	var firstErr error
+	var wg sync.WaitGroup
+
+	for _, entry := range files {
+		wg.Add(1)
+		go func(entry githubContentEntry) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			mu.Lock()
+			if firstErr != nil {
+				mu.Unlock()
+				return
+			}
+			mu.Unlock()
+
+			destPath := filepath.Join(destDir, entry.Name)
 			downloadURL := source.ResolveDownloadURL(entry.Path)
 			if err := c.Download(downloadURL, destPath, source.Token, source.Username); err != nil {
-				return fmt.Errorf("downloading %s: %w", entry.Name, err)
+				mu.Lock()
+				if firstErr == nil {
+					firstErr = fmt.Errorf("downloading %s: %w", entry.Name, err)
+				}
+				mu.Unlock()
+				return
 			}
 			if c.OnProgress != nil {
 				c.OnProgress(entry.Name)
 			}
-		}
+		}(entry)
 	}
 
-	return nil
+	wg.Wait()
+	return firstErr
 }
 
 func (c *Client) newRequest(rawURL, token, username string) (*http.Request, error) {
