@@ -113,8 +113,8 @@ var repoIndexCmd = &cobra.Command{
 }
 
 func init() {
-	repoIndexCmd.Flags().StringVar(&repoIndexMerge, "merge", "", "merge with existing index file")
-	repoIndexCmd.Flags().StringVar(&repoIndexURL, "url", "", "base URL prefix for download_url fields")
+	repoIndexCmd.Flags().StringVarP(&repoIndexMerge, "merge", "m", "", "merge with existing index file")
+	repoIndexCmd.Flags().StringVarP(&repoIndexURL, "url", "u", "", "base URL prefix for download_url fields")
 	repoIndexCmd.Flags().StringVarP(&repoIndexOutput, "output", "o", "", "output path for index.json (default: <dir>/index.json)")
 	repoCmd.AddCommand(repoIndexCmd)
 }

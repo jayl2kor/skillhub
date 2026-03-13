@@ -81,7 +81,7 @@ var lintCmd = &cobra.Command{
 }
 
 func init() {
-	lintCmd.Flags().BoolVar(&lintStrict, "strict", false, "treat warnings as errors")
+	lintCmd.Flags().BoolVarP(&lintStrict, "strict", "s", false, "treat warnings as errors")
 	rootCmd.AddCommand(lintCmd)
 }
 

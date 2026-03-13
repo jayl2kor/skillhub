@@ -61,6 +61,6 @@ var runCmd = &cobra.Command{
 }
 
 func init() {
-	runCmd.Flags().StringVar(&toolFlag, "tool", "", "agent type (claude, cursor, windsurf, cline, generic)")
+	runCmd.Flags().StringVarP(&toolFlag, "tool", "t", "", "agent type (claude, cursor, windsurf, cline, generic)")
 	rootCmd.AddCommand(runCmd)
 }
