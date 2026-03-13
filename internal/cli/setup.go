@@ -10,6 +10,35 @@ import (
 	"github.com/jayl2kor/skillhub/internal/registry"
 )
 
+// registrySources converts config registries to RepoSource slice.
+// If repoFilter is non-empty, only the matching registry is returned.
+func registrySources(cfg *config.Config, repoFilter string) ([]registry.RepoSource, error) {
+	if len(cfg.Registries) == 0 {
+		return nil, fmt.Errorf("no registries configured; use 'skillhub repo add' to add one")
+	}
+
+	var entries []config.RegistryEntry
+	if repoFilter != "" {
+		for _, r := range cfg.Registries {
+			if r.Name == repoFilter {
+				entries = append(entries, r)
+				break
+			}
+		}
+		if len(entries) == 0 {
+			return nil, fmt.Errorf("registry %q not found; check 'skillhub repo list'", repoFilter)
+		}
+	} else {
+		entries = cfg.Registries
+	}
+
+	sources := make([]registry.RepoSource, len(entries))
+	for i, r := range entries {
+		sources[i] = registry.RepoSource{Name: r.Name, URL: r.URL, Token: r.Token, Username: r.Username, Branch: r.Branch}
+	}
+	return sources, nil
+}
+
 func loadOrSetupConfig() (*config.Config, error) {
 	cfg, err := config.Load(paths.Config)
 	if err == nil {

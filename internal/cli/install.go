@@ -11,6 +11,7 @@ var (
 	globalInstall  bool
 	installTool    string
 	installVersion string
+	installRepo    string
 )
 
 var installCmd = &cobra.Command{
@@ -27,6 +28,7 @@ var installCmd = &cobra.Command{
 		inst.Verbose = logVerbose
 		inst.AgentTool = installTool
 		inst.Version = installVersion
+		inst.RepoFilter = installRepo
 		return inst.Install(args[0], forceInstall, globalInstall)
 	},
 }
@@ -36,5 +38,6 @@ func init() {
 	installCmd.Flags().BoolVarP(&globalInstall, "global", "g", false, "install to agent skills directory in home")
 	installCmd.Flags().StringVarP(&installTool, "tool", "t", "claude", "agent type for --global install path (claude, cursor, windsurf, cline, generic)")
 	installCmd.Flags().StringVar(&installVersion, "version", "", "install a specific version")
+	installCmd.Flags().StringVarP(&installRepo, "repo", "r", "", "install from a specific registry")
 	rootCmd.AddCommand(installCmd)
 }
