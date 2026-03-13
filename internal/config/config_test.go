@@ -96,7 +96,7 @@ func TestValidate(t *testing.T) {
 func TestAddRemoveRegistry(t *testing.T) {
 	cfg := &Config{}
 
-	if err := cfg.AddRegistry("test", "https://example.com", "", "", ""); err != nil {
+	if err := cfg.AddRegistry("test", "https://example.com", "", "", "", ""); err != nil {
 		t.Fatalf("AddRegistry: %v", err)
 	}
 
@@ -105,7 +105,7 @@ func TestAddRemoveRegistry(t *testing.T) {
 	}
 
 	// Duplicate name should update URL, token, and username
-	if err := cfg.AddRegistry("test", "https://other.com", "tok", "user1", ""); err != nil {
+	if err := cfg.AddRegistry("test", "https://other.com", "tok", "user1", "", ""); err != nil {
 		t.Fatalf("AddRegistry update: %v", err)
 	}
 	if len(cfg.Registries) != 1 {

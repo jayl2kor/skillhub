@@ -17,6 +17,7 @@ var (
 	publishToken   string
 	publishForce   bool
 	publishDryRun  bool
+	publishPrefix  string
 )
 
 var publishCmd = &cobra.Command{
@@ -70,6 +71,7 @@ var publishCmd = &cobra.Command{
 		}
 
 		var reg *registry.RepoSource
+		var configSkillsPrefix string
 		if publishRepo != "" {
 			for _, r := range cfg.Registries {
 				if r.Name == publishRepo {
@@ -80,6 +82,7 @@ var publishCmd = &cobra.Command{
 						Username: r.Username,
 						Branch:   r.Branch,
 					}
+					configSkillsPrefix = r.SkillsPrefix
 					break
 				}
 			}
@@ -95,6 +98,7 @@ var publishCmd = &cobra.Command{
 				Username: r.Username,
 				Branch:   r.Branch,
 			}
+			configSkillsPrefix = r.SkillsPrefix
 		} else {
 			return fmt.Errorf("multiple registries configured; use --repo to specify")
 		}
@@ -105,8 +109,15 @@ var publishCmd = &cobra.Command{
 			reg.Token = publishToken
 		}
 
-		// Directory path in registry: skills/{name}/
-		destPrefix := "skills/" + m.Name
+		// Resolve skills prefix: --prefix flag > per-registry config > default
+		skillsPrefix := ".claude/skills"
+		if configSkillsPrefix != "" {
+			skillsPrefix = configSkillsPrefix
+		}
+		if publishPrefix != "" {
+			skillsPrefix = publishPrefix
+		}
+		destPrefix := skillsPrefix + "/" + m.Name
 
 		if publishDryRun {
 			fmt.Printf("[dry-run] Would publish %s@%s to %s (%s/)\n", m.Name, m.Version, reg.Name, destPrefix)
@@ -164,5 +175,6 @@ func init() {
 	publishCmd.Flags().StringVar(&publishToken, "token", "", "GitHub personal access token (overrides config)")
 	publishCmd.Flags().BoolVarP(&publishForce, "force", "f", false, "overwrite existing version")
 	publishCmd.Flags().BoolVarP(&publishDryRun, "dry-run", "n", false, "validate without uploading")
+	publishCmd.Flags().StringVar(&publishPrefix, "prefix", "", "destination prefix in registry (default: .claude/skills)")
 	rootCmd.AddCommand(publishCmd)
 }

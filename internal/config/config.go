@@ -9,11 +9,12 @@ import (
 )
 
 type RegistryEntry struct {
-	Name     string `yaml:"name"`
-	URL      string `yaml:"url"`
-	Token    string `yaml:"token,omitempty"`
-	Username string `yaml:"username,omitempty"`
-	Branch   string `yaml:"branch,omitempty"`
+	Name         string `yaml:"name"`
+	URL          string `yaml:"url"`
+	Token        string `yaml:"token,omitempty"`
+	Username     string `yaml:"username,omitempty"`
+	Branch       string `yaml:"branch,omitempty"`
+	SkillsPrefix string `yaml:"skills_prefix,omitempty"`
 }
 
 type Config struct {
@@ -71,17 +72,18 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-func (c *Config) AddRegistry(name, url, token, username, branch string) error {
+func (c *Config) AddRegistry(name, url, token, username, branch, skillsPrefix string) error {
 	for i, r := range c.Registries {
 		if r.Name == name {
 			c.Registries[i].URL = url
 			c.Registries[i].Token = token
 			c.Registries[i].Username = username
 			c.Registries[i].Branch = branch
+			c.Registries[i].SkillsPrefix = skillsPrefix
 			return nil
 		}
 	}
-	c.Registries = append(c.Registries, RegistryEntry{Name: name, URL: url, Token: token, Username: username, Branch: branch})
+	c.Registries = append(c.Registries, RegistryEntry{Name: name, URL: url, Token: token, Username: username, Branch: branch, SkillsPrefix: skillsPrefix})
 	return nil
 }
 

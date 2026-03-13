@@ -44,7 +44,8 @@ var repoAddCmd = &cobra.Command{
 			return fmt.Errorf("cannot access registry index: %w", err)
 		}
 
-		if err := cfg.AddRegistry(source.Name, source.URL, source.Token, source.Username, source.Branch); err != nil {
+		skillsPrefix, _ := cmd.Flags().GetString("skills-prefix")
+		if err := cfg.AddRegistry(source.Name, source.URL, source.Token, source.Username, source.Branch, skillsPrefix); err != nil {
 			return err
 		}
 
@@ -108,6 +109,7 @@ var repoRemoveCmd = &cobra.Command{
 func init() {
 	repoAddCmd.Flags().String("token", "", "personal access token for private registries")
 	repoAddCmd.Flags().String("username", "", "username for Basic Auth (required for GitHub Enterprise)")
+	repoAddCmd.Flags().String("skills-prefix", "", "destination prefix for publish (default: .claude/skills)")
 	repoCmd.AddCommand(repoAddCmd)
 	repoCmd.AddCommand(repoListCmd)
 	repoCmd.AddCommand(repoRemoveCmd)
