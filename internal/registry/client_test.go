@@ -1,12 +1,15 @@
 package registry
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"testing"
+	"time"
 )
 
 func TestFetchIndexLocal(t *testing.T) {
@@ -375,6 +378,70 @@ func TestDownloadDirectoryGitHub(t *testing.T) {
 	}
 	if string(data) != `{"name":"test-skill"}` {
 		t.Errorf("unexpected content: %q", string(data))
+	}
+}
+
+func TestDownloadDirectoryGitHubConcurrent(t *testing.T) {
+	var concurrent atomic.Int32
+	var maxConcurrent atomic.Int32
+
+	fileCount := 12
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		if r.URL.Path == "/api/v3/repos/owner/repo/contents/skills/many-files" {
+			var entries []string
+			for i := range fileCount {
+				entries = append(entries, fmt.Sprintf(`{"name":"file%d.txt","path":"skills/many-files/file%d.txt","type":"file"}`, i, i))
+			}
+			resp := "[" + strings.Join(entries, ",") + "]"
+			if _, err := w.Write([]byte(resp)); err != nil {
+				t.Errorf("writing response: %v", err)
+			}
+			return
+		}
+
+		// Track concurrency for file downloads
+		cur := concurrent.Add(1)
+		defer concurrent.Add(-1)
+		for {
+			old := maxConcurrent.Load()
+			if cur <= old || maxConcurrent.CompareAndSwap(old, cur) {
+				break
+			}
+		}
+
+		// Small delay so concurrent requests overlap
+		time.Sleep(10 * time.Millisecond)
+
+		if _, err := w.Write([]byte("content")); err != nil {
+			t.Errorf("writing response: %v", err)
+		}
+	}))
+	defer server.Close()
+
+	source := &RepoSource{
+		Name:   "test",
+		URL:    server.URL + "/owner/repo",
+		Branch: "main",
+	}
+
+	destDir := t.TempDir()
+	client := NewClient()
+	if err := client.DownloadDirectory(source, "skills/many-files/", destDir); err != nil {
+		t.Fatalf("DownloadDirectory: %v", err)
+	}
+
+	// Verify all files downloaded
+	for i := range fileCount {
+		name := fmt.Sprintf("file%d.txt", i)
+		if _, err := os.Stat(filepath.Join(destDir, name)); err != nil {
+			t.Errorf("missing %s: %v", name, err)
+		}
+	}
+
+	if got := maxConcurrent.Load(); got < 2 {
+		t.Errorf("expected concurrent downloads, but max concurrency was %d", got)
 	}
 }
 
