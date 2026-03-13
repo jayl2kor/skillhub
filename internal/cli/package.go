@@ -45,6 +45,12 @@ var packageCmd = &cobra.Command{
 			return fmt.Errorf("entry file %q not found", m.Entry)
 		}
 
+		// Verify SKILL.md exists
+		skillMDPath := filepath.Join(dir, "SKILL.md")
+		if _, err := os.Stat(skillMDPath); os.IsNotExist(err) {
+			return fmt.Errorf("SKILL.md not found (required)")
+		}
+
 		// Build archive
 		filename := fmt.Sprintf("%s-%s.tar.gz", m.Name, m.Version)
 		destPath := filepath.Join(packageDest, filename)
