@@ -15,8 +15,9 @@ import (
 )
 
 var (
-	repoIndexMerge string
-	repoIndexURL   string
+	repoIndexMerge  string
+	repoIndexURL    string
+	repoIndexOutput string
 )
 
 var repoIndexCmd = &cobra.Command{
@@ -98,7 +99,10 @@ var repoIndexCmd = &cobra.Command{
 			return fmt.Errorf("marshaling index: %w", err)
 		}
 
-		outputPath := filepath.Join(dir, "index.json")
+		outputPath := repoIndexOutput
+		if outputPath == "" {
+			outputPath = filepath.Join(dir, "index.json")
+		}
 		if err := os.WriteFile(outputPath, append(data, '\n'), 0644); err != nil {
 			return fmt.Errorf("writing index: %w", err)
 		}
@@ -111,6 +115,7 @@ var repoIndexCmd = &cobra.Command{
 func init() {
 	repoIndexCmd.Flags().StringVar(&repoIndexMerge, "merge", "", "merge with existing index file")
 	repoIndexCmd.Flags().StringVar(&repoIndexURL, "url", "", "base URL prefix for download_url fields")
+	repoIndexCmd.Flags().StringVarP(&repoIndexOutput, "output", "o", "", "output path for index.json (default: <dir>/index.json)")
 	repoCmd.AddCommand(repoIndexCmd)
 }
 
