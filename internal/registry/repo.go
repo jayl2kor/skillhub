@@ -77,6 +77,32 @@ func isLocalPath(url string) bool {
 	return strings.HasPrefix(url, "/") || strings.HasPrefix(url, "./") || strings.HasPrefix(url, "../")
 }
 
+// IsLocal reports whether this source points to a local filesystem path.
+func (r *RepoSource) IsLocal() bool {
+	return isLocalPath(r.URL)
+}
+
+// ContentsAPIPutURL returns the GitHub Contents API URL for writing a file.
+// Unlike ContentsAPIURL, it omits the ?ref= query parameter since the
+// PUT endpoint accepts the branch in the JSON request body.
+func (r *RepoSource) ContentsAPIPutURL(path string) string {
+	path = strings.TrimSuffix(path, "/")
+	if isLocalPath(r.URL) {
+		return filepath.Join(r.URL, path)
+	}
+
+	u, err := url.Parse(r.URL)
+	if err != nil {
+		return ""
+	}
+	ownerRepo := strings.Trim(u.Path, "/")
+
+	if u.Host == "github.com" {
+		return fmt.Sprintf("https://api.github.com/repos/%s/contents/%s", ownerRepo, path)
+	}
+	return fmt.Sprintf("%s://%s/api/v3/repos/%s/contents/%s", u.Scheme, u.Host, ownerRepo, path)
+}
+
 // ContentsAPIURL returns the GitHub Contents API URL for the given path.
 // For local paths, it returns the joined filesystem path.
 func (r *RepoSource) ContentsAPIURL(path string) string {
