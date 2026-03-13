@@ -85,6 +85,6 @@ var searchCmd = &cobra.Command{
 
 func init() {
 	searchCmd.Flags().StringVarP(&outputFormat, "output", "o", "table", "output format (table, json, yaml)")
-	searchCmd.Flags().BoolVar(&searchVersions, "versions", false, "show all available versions")
+	searchCmd.Flags().BoolVarP(&searchVersions, "versions", "V", false, "show all available versions")
 	rootCmd.AddCommand(searchCmd)
 }

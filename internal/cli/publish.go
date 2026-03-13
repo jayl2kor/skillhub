@@ -159,10 +159,10 @@ var publishCmd = &cobra.Command{
 }
 
 func init() {
-	publishCmd.Flags().StringVar(&publishRepo, "repo", "", "target registry name")
+	publishCmd.Flags().StringVarP(&publishRepo, "repo", "r", "", "target registry name")
 	publishCmd.Flags().StringVar(&publishVersion, "version", "", "override version from skill.json")
 	publishCmd.Flags().StringVar(&publishToken, "token", "", "GitHub personal access token (overrides config)")
-	publishCmd.Flags().BoolVar(&publishForce, "force", false, "overwrite existing version")
-	publishCmd.Flags().BoolVar(&publishDryRun, "dry-run", false, "validate without uploading")
+	publishCmd.Flags().BoolVarP(&publishForce, "force", "f", false, "overwrite existing version")
+	publishCmd.Flags().BoolVarP(&publishDryRun, "dry-run", "n", false, "validate without uploading")
 	rootCmd.AddCommand(publishCmd)
 }

@@ -95,8 +95,8 @@ var createCmd = &cobra.Command{
 }
 
 func init() {
-	createCmd.Flags().StringVar(&createType, "type", "prompt", "skill type (prompt, shell, python, node)")
-	createCmd.Flags().StringVar(&createAuthor, "author", "", "author name")
+	createCmd.Flags().StringVarP(&createType, "type", "t", "prompt", "skill type (prompt, shell, python, node)")
+	createCmd.Flags().StringVarP(&createAuthor, "author", "a", "", "author name")
 	createCmd.Flags().StringVar(&createDescription, "description", "", "skill description")
 	rootCmd.AddCommand(createCmd)
 }

@@ -32,9 +32,9 @@ var installCmd = &cobra.Command{
 }
 
 func init() {
-	installCmd.Flags().BoolVar(&forceInstall, "force", false, "force reinstall if already installed")
+	installCmd.Flags().BoolVarP(&forceInstall, "force", "f", false, "force reinstall if already installed")
 	installCmd.Flags().BoolVarP(&globalInstall, "global", "g", false, "install to agent skills directory in home")
-	installCmd.Flags().StringVar(&installTool, "tool", "claude", "agent type for --global install path (claude, cursor, windsurf, cline, generic)")
+	installCmd.Flags().StringVarP(&installTool, "tool", "t", "claude", "agent type for --global install path (claude, cursor, windsurf, cline, generic)")
 	installCmd.Flags().StringVar(&installVersion, "version", "", "install a specific version")
 	rootCmd.AddCommand(installCmd)
 }
