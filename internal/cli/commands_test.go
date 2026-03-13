@@ -19,6 +19,7 @@ func TestSubcommandRegistration(t *testing.T) {
 		"init", "list", "doctor", "repo", "search",
 		"info", "install", "run", "update", "remove",
 		"cache", "create", "lint", "package", "completion", "verify",
+		"config", "publish",
 	}
 
 	commands := make(map[string]bool)
@@ -29,6 +30,21 @@ func TestSubcommandRegistration(t *testing.T) {
 	for _, name := range expected {
 		if !commands[name] {
 			t.Errorf("command %q not registered", name)
+		}
+	}
+}
+
+func TestConfigSubcommands(t *testing.T) {
+	expected := []string{"list", "get", "set", "path", "edit"}
+
+	commands := make(map[string]bool)
+	for _, cmd := range configCmd.Commands() {
+		commands[cmd.Name()] = true
+	}
+
+	for _, name := range expected {
+		if !commands[name] {
+			t.Errorf("config subcommand %q not registered", name)
 		}
 	}
 }

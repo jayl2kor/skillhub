@@ -81,6 +81,12 @@ skillhub install code-review --global --tool claude
 | `completion <shell>` | Generate shell autocompletion (bash/zsh/fish/powershell) |
 | `repo index <dir>` | Generate index.json from skill directories and archives |
 | `repo update [name]` | Fetch and cache registry indexes |
+| `publish [dir]` | Publish a skill to a registry |
+| `config list` | Show all configuration values |
+| `config get <key>` | Get a configuration value |
+| `config set <key> <value>` | Set a configuration value |
+| `config path` | Show configuration file path |
+| `config edit` | Open configuration in `$EDITOR` |
 
 ### Global Flags
 
@@ -111,6 +117,17 @@ When `--global` is used, the skill is installed to the project-level agent direc
 | `windsurf` | `.windsurf/skills/<name>` |
 | `cline` | `.cline/skills/<name>` |
 | `generic` | `.agent/skills/<name>` |
+
+### Publish Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `-r, --repo <name>` | - | Target registry name |
+| `--token <token>` | - | GitHub PAT (overrides config) |
+| `-f, --force` | `false` | Overwrite existing version |
+| `-n, --dry-run` | `false` | Validate without uploading |
+| `--version <ver>` | - | Override version from skill.json |
+| `--prefix <path>` | `.claude/skills` | Destination prefix in registry |
 
 ### Run Flags
 
@@ -181,7 +198,38 @@ my-skill/
 
 ### Publishing
 
-The recommended way to publish skills is **directory-based** — just place your skill folder in the registry and point `index.json` at it. No packaging step required.
+#### Using `skillhub publish` (recommended)
+
+Publish a skill directory directly to a configured registry:
+
+```bash
+# Publish to the default registry
+skillhub publish my-skill/
+
+# Preview without uploading
+skillhub publish my-skill/ --dry-run
+
+# Publish to a specific registry with a token
+skillhub publish my-skill/ -r my-registry --token ghp_xxxx
+
+# Overwrite an existing version
+skillhub publish my-skill/ --force
+
+# Custom destination prefix (default: .claude/skills)
+skillhub publish my-skill/ --prefix "skills"
+```
+
+The destination prefix can also be set per-registry via config:
+
+```bash
+skillhub config set registries.my-registry.skills_prefix "custom/path"
+```
+
+Resolution order: `--prefix` flag > per-registry `skills_prefix` config > default (`.claude/skills`).
+
+#### Manual publishing
+
+Place your skill folder in the registry and point `index.json` at it:
 
 ```
 my-registry/
@@ -282,12 +330,35 @@ registries:
     token: ghp_xxxx          # optional
     username: user            # optional (GitHub Enterprise)
     branch: main              # auto-detected
+    skills_prefix: .claude/skills  # optional, publish destination prefix
 install_dir: ~/.skillhub/skills
 cache_dir: ~/.skillhub/cache
 log_dir: ~/.skillhub/logs
 ```
 
 Config files with tokens are saved with `0600` permissions.
+
+### Managing config via CLI
+
+```bash
+# View all settings (tokens masked by default)
+skillhub config list
+
+# Get a specific value using dot notation
+skillhub config get install_dir
+skillhub config get registries.my-registry.skills_prefix
+
+# Set a value
+skillhub config set registries.my-registry.skills_prefix "custom/path"
+
+# Show raw token value
+skillhub config get registries.my-registry.token --unmask
+
+# Open config in editor
+skillhub config edit
+```
+
+Dot-notation keys for registries: `registries.<name>.<field>` where field is one of `name`, `url`, `token`, `username`, `branch`, `skills_prefix`. Numeric index access (`registries.0.url`) is also supported.
 
 ## Security
 
