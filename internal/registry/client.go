@@ -183,6 +183,14 @@ func copyDirectory(srcDir, destDir string) error {
 			return err
 		}
 
+		// Skip hidden files/directories (matching archive mode behavior)
+		if d.Name() != "." && len(d.Name()) > 0 && d.Name()[0] == '.' {
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+
 		rel, err := filepath.Rel(srcDir, path)
 		if err != nil {
 			return err

@@ -243,6 +243,50 @@ func TestDownloadDirectoryLocal(t *testing.T) {
 	}
 }
 
+func TestDownloadDirectoryLocalSkipsHiddenFiles(t *testing.T) {
+	srcDir := t.TempDir()
+	skillDir := filepath.Join(srcDir, "skills", "my-skill")
+	if err := os.MkdirAll(skillDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(skillDir, "skill.json"), []byte(`{"name":"my-skill"}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create hidden files and directories that should be skipped
+	if err := os.WriteFile(filepath.Join(skillDir, ".DS_Store"), []byte("hidden"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	hiddenDir := filepath.Join(skillDir, ".git")
+	if err := os.MkdirAll(hiddenDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(hiddenDir, "config"), []byte("git config"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	destDir := t.TempDir()
+	client := NewClient()
+	source := &RepoSource{Name: "local", URL: srcDir}
+
+	if err := client.DownloadDirectory(source, "skills/my-skill/", destDir); err != nil {
+		t.Fatalf("DownloadDirectory: %v", err)
+	}
+
+	// Visible files should be copied
+	if _, err := os.Stat(filepath.Join(destDir, "skill.json")); err != nil {
+		t.Error("skill.json should be copied")
+	}
+
+	// Hidden files should NOT be copied
+	if _, err := os.Stat(filepath.Join(destDir, ".DS_Store")); !os.IsNotExist(err) {
+		t.Error(".DS_Store should not be copied")
+	}
+	if _, err := os.Stat(filepath.Join(destDir, ".git")); !os.IsNotExist(err) {
+		t.Error(".git directory should not be copied")
+	}
+}
+
 func TestDownloadDirectoryGitHub(t *testing.T) {
 	// Mock GitHub Contents API with /api/v3/ prefix (GHE style)
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
