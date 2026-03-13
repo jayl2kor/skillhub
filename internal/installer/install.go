@@ -169,8 +169,11 @@ func (inst *Installer) Install(name string, force bool, global bool) error {
 		if err != nil {
 			return err
 		}
-		projectRoot := storage.DetectProjectRoot()
-		finalDir = filepath.Join(projectRoot, agent.SkillsPath, name)
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return fmt.Errorf("detecting home directory: %w", err)
+		}
+		finalDir = filepath.Join(home, agent.SkillsPath, name)
 	} else {
 		finalDir = inst.Paths.SkillDir(name)
 	}
