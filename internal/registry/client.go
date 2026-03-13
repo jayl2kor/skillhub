@@ -20,6 +20,7 @@ const (
 
 type Client struct {
 	HTTPClient *http.Client
+	OnProgress func(filename string) // called for each file downloaded in directory mode
 }
 
 func NewClient() *Client {
@@ -166,18 +167,19 @@ type githubContentEntry struct {
 
 // DownloadDirectory downloads all files from a directory source into destDir.
 // For local paths, it copies the directory tree. For GitHub, it uses the Contents API.
+// If OnProgress is set, it is called with each file's relative name after download.
 func (c *Client) DownloadDirectory(source *RepoSource, dirPath, destDir string) error {
 	dirPath = strings.TrimSuffix(dirPath, "/")
 
 	if isLocalPath(source.URL) {
 		srcDir := filepath.Join(source.URL, dirPath)
-		return copyDirectory(srcDir, destDir)
+		return c.copyDirectory(srcDir, destDir)
 	}
 
 	return c.downloadGitHubDirectory(source, dirPath, destDir)
 }
 
-func copyDirectory(srcDir, destDir string) error {
+func (c *Client) copyDirectory(srcDir, destDir string) error {
 	return filepath.WalkDir(srcDir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -199,7 +201,13 @@ func copyDirectory(srcDir, destDir string) error {
 			return fmt.Errorf("reading %s: %w", path, err)
 		}
 
-		return os.WriteFile(destPath, data, 0644)
+		if err := os.WriteFile(destPath, data, 0644); err != nil {
+			return err
+		}
+		if c.OnProgress != nil {
+			c.OnProgress(rel)
+		}
+		return nil
 	})
 }
 
@@ -231,6 +239,9 @@ func (c *Client) downloadGitHubDirectory(source *RepoSource, dirPath, destDir st
 			downloadURL := source.ResolveDownloadURL(entry.Path)
 			if err := c.Download(downloadURL, destPath, source.Token, source.Username); err != nil {
 				return fmt.Errorf("downloading %s: %w", entry.Name, err)
+			}
+			if c.OnProgress != nil {
+				c.OnProgress(entry.Name)
 			}
 		}
 	}
