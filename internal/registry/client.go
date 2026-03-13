@@ -259,6 +259,15 @@ func (c *Client) newRequest(rawURL, token, username string) (*http.Request, erro
 
 func checkResponse(resp *http.Response, rawURL, token string) error {
 	credentialHint := "--token and --username"
+
+	// Check for GitHub API rate limiting
+	if resp.StatusCode == http.StatusForbidden && resp.Header.Get("X-RateLimit-Remaining") == "0" {
+		if token == "" {
+			return fmt.Errorf("GitHub API rate limit exceeded (60/hr for unauthenticated requests). Use 'skillhub repo add <url> --token <PAT>' to increase to 5000/hr")
+		}
+		return fmt.Errorf("GitHub API rate limit exceeded. Wait or use a different token")
+	}
+
 	if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden {
 		if token == "" {
 			return fmt.Errorf("HTTP %d from %s (authentication required; use %s to provide credentials)", resp.StatusCode, rawURL, credentialHint)
