@@ -117,6 +117,83 @@ func (c *Client) UploadFile(source *RepoSource, path string, content []byte, sha
 	return nil
 }
 
+// UploadDirectory uploads all files from srcDir to destPrefix in the registry.
+// For local registries it copies the directory tree. For GitHub it uploads
+// each file via the Contents API. Hidden files/directories are skipped.
+func (c *Client) UploadDirectory(source *RepoSource, srcDir, destPrefix, message string) error {
+	if source.IsLocal() {
+		destDir := filepath.Join(source.URL, destPrefix)
+		if err := os.MkdirAll(destDir, 0755); err != nil {
+			return fmt.Errorf("creating directory %s: %w", destDir, err)
+		}
+		return filepath.WalkDir(srcDir, func(path string, d os.DirEntry, err error) error {
+			if err != nil {
+				return err
+			}
+			if d.Name() != "." && len(d.Name()) > 0 && d.Name()[0] == '.' {
+				if d.IsDir() {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+			rel, err := filepath.Rel(srcDir, path)
+			if err != nil {
+				return err
+			}
+			dest := filepath.Join(destDir, rel)
+			if d.IsDir() {
+				return os.MkdirAll(dest, 0755)
+			}
+			data, err := os.ReadFile(path)
+			if err != nil {
+				return fmt.Errorf("reading %s: %w", path, err)
+			}
+			return os.WriteFile(dest, data, 0644)
+		})
+	}
+
+	// GitHub: walk source directory and upload each file
+	return filepath.WalkDir(srcDir, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		if d.Name() != "." && len(d.Name()) > 0 && d.Name()[0] == '.' {
+			if d.IsDir() {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if d.IsDir() {
+			return nil
+		}
+
+		rel, err := filepath.Rel(srcDir, path)
+		if err != nil {
+			return err
+		}
+		remotePath := destPrefix + "/" + filepath.ToSlash(rel)
+
+		content, err := os.ReadFile(path)
+		if err != nil {
+			return fmt.Errorf("reading %s: %w", rel, err)
+		}
+
+		sha, err := c.GetFileSHA(source, remotePath)
+		if err != nil {
+			return fmt.Errorf("checking %s: %w", remotePath, err)
+		}
+
+		if err := c.UploadFile(source, remotePath, content, sha, message); err != nil {
+			return fmt.Errorf("uploading %s: %w", rel, err)
+		}
+
+		if c.OnProgress != nil {
+			c.OnProgress(rel)
+		}
+		return nil
+	})
+}
+
 // UpdateIndex fetches the current index.json from the registry, upserts the
 // given entry, and writes it back. If force is false and a matching
 // name+version already exists, it returns an error.
@@ -175,6 +252,6 @@ func (c *Client) UpdateIndex(source *RepoSource, entry IndexEntry, force bool) e
 		return fmt.Errorf("getting index.json SHA: %w", err)
 	}
 
-	msg := fmt.Sprintf("publish %s@%s", entry.Name, entry.Version)
+	msg := fmt.Sprintf("update index: %s@%s", entry.Name, entry.Version)
 	return c.UploadFile(source, "index.json", indexData, sha, msg)
 }

@@ -21,8 +21,8 @@ func TestContentsAPIPutURL(t *testing.T) {
 		{
 			name:     "github.com",
 			source:   RepoSource{URL: "https://github.com/owner/repo"},
-			path:     "my-skill-1.0.0.tar.gz",
-			expected: "https://api.github.com/repos/owner/repo/contents/my-skill-1.0.0.tar.gz",
+			path:     "skills/my-skill/skill.json",
+			expected: "https://api.github.com/repos/owner/repo/contents/skills/my-skill/skill.json",
 		},
 		{
 			name:     "github enterprise",
@@ -33,8 +33,8 @@ func TestContentsAPIPutURL(t *testing.T) {
 		{
 			name:     "local path",
 			source:   RepoSource{URL: "/tmp/registry"},
-			path:     "my-skill-1.0.0.tar.gz",
-			expected: "/tmp/registry/my-skill-1.0.0.tar.gz",
+			path:     "skills/my-skill/skill.json",
+			expected: "/tmp/registry/skills/my-skill/skill.json",
 		},
 	}
 
@@ -69,13 +69,13 @@ func TestIsLocal(t *testing.T) {
 func TestGetFileSHA(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
-		case "/api/v3/repos/owner/repo/contents/exists.tar.gz":
+		case "/api/v3/repos/owner/repo/contents/skills/my-skill/skill.json":
 			w.Header().Set("Content-Type", "application/json")
 			resp, _ := json.Marshal(githubFileInfo{SHA: "abc123"})
 			if _, err := w.Write(resp); err != nil {
 				t.Errorf("writing response: %v", err)
 			}
-		case "/api/v3/repos/owner/repo/contents/missing.tar.gz":
+		case "/api/v3/repos/owner/repo/contents/skills/my-skill/missing.md":
 			http.NotFound(w, r)
 		default:
 			http.NotFound(w, r)
@@ -89,8 +89,7 @@ func TestGetFileSHA(t *testing.T) {
 		Branch: "main",
 	}
 
-	// Existing file returns SHA
-	sha, err := client.GetFileSHA(source, "exists.tar.gz")
+	sha, err := client.GetFileSHA(source, "skills/my-skill/skill.json")
 	if err != nil {
 		t.Fatalf("GetFileSHA existing: %v", err)
 	}
@@ -98,8 +97,7 @@ func TestGetFileSHA(t *testing.T) {
 		t.Errorf("expected sha abc123, got %q", sha)
 	}
 
-	// Missing file returns empty string
-	sha, err = client.GetFileSHA(source, "missing.tar.gz")
+	sha, err = client.GetFileSHA(source, "skills/my-skill/missing.md")
 	if err != nil {
 		t.Fatalf("GetFileSHA missing: %v", err)
 	}
@@ -138,25 +136,24 @@ func TestUploadFileGitHub(t *testing.T) {
 		Token:  "test-token",
 	}
 
-	content := []byte("archive content")
-	err := client.UploadFile(source, "skill-1.0.0.tar.gz", content, "", "publish skill@1.0.0")
+	content := []byte(`{"name":"my-skill"}`)
+	err := client.UploadFile(source, "skills/my-skill/skill.json", content, "", "publish my-skill@1.0.0")
 	if err != nil {
 		t.Fatalf("UploadFile: %v", err)
 	}
 
-	// Verify request body
 	decoded, err := base64.StdEncoding.DecodeString(receivedBody.Content)
 	if err != nil {
 		t.Fatalf("decoding content: %v", err)
 	}
-	if string(decoded) != "archive content" {
-		t.Errorf("content = %q, want %q", string(decoded), "archive content")
+	if string(decoded) != `{"name":"my-skill"}` {
+		t.Errorf("content = %q, want %q", string(decoded), `{"name":"my-skill"}`)
 	}
 	if receivedBody.Branch != "main" {
 		t.Errorf("branch = %q, want %q", receivedBody.Branch, "main")
 	}
-	if receivedBody.Message != "publish skill@1.0.0" {
-		t.Errorf("message = %q, want %q", receivedBody.Message, "publish skill@1.0.0")
+	if receivedBody.Message != "publish my-skill@1.0.0" {
+		t.Errorf("message = %q, want %q", receivedBody.Message, "publish my-skill@1.0.0")
 	}
 }
 
@@ -165,18 +162,125 @@ func TestUploadFileLocal(t *testing.T) {
 	client := NewClient()
 	source := &RepoSource{URL: dir}
 
-	content := []byte("local archive content")
-	err := client.UploadFile(source, "skill-1.0.0.tar.gz", content, "", "")
+	content := []byte(`{"name":"my-skill"}`)
+	err := client.UploadFile(source, "skills/my-skill/skill.json", content, "", "")
 	if err != nil {
 		t.Fatalf("UploadFile local: %v", err)
 	}
 
-	data, err := os.ReadFile(filepath.Join(dir, "skill-1.0.0.tar.gz"))
+	data, err := os.ReadFile(filepath.Join(dir, "skills", "my-skill", "skill.json"))
 	if err != nil {
 		t.Fatalf("reading uploaded file: %v", err)
 	}
-	if string(data) != "local archive content" {
-		t.Errorf("content = %q, want %q", string(data), "local archive content")
+	if string(data) != `{"name":"my-skill"}` {
+		t.Errorf("content = %q, want %q", string(data), `{"name":"my-skill"}`)
+	}
+}
+
+func TestUploadDirectoryLocal(t *testing.T) {
+	// Create source skill directory
+	srcDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(srcDir, "skill.json"), []byte(`{"name":"test"}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(srcDir, "SKILL.md"), []byte("# Test"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(srcDir, "refs"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(srcDir, "refs", "guide.md"), []byte("guide"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	// Hidden file should be skipped
+	if err := os.WriteFile(filepath.Join(srcDir, ".DS_Store"), []byte("hidden"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	regDir := t.TempDir()
+	client := NewClient()
+	source := &RepoSource{Name: "local", URL: regDir}
+
+	if err := client.UploadDirectory(source, srcDir, "skills/test", "publish"); err != nil {
+		t.Fatalf("UploadDirectory: %v", err)
+	}
+
+	// Verify files were copied
+	data, err := os.ReadFile(filepath.Join(regDir, "skills", "test", "skill.json"))
+	if err != nil {
+		t.Fatalf("reading skill.json: %v", err)
+	}
+	if string(data) != `{"name":"test"}` {
+		t.Errorf("skill.json content = %q", string(data))
+	}
+
+	data, err = os.ReadFile(filepath.Join(regDir, "skills", "test", "refs", "guide.md"))
+	if err != nil {
+		t.Fatalf("reading refs/guide.md: %v", err)
+	}
+	if string(data) != "guide" {
+		t.Errorf("guide.md content = %q", string(data))
+	}
+
+	// Hidden file should not be copied
+	if _, err := os.Stat(filepath.Join(regDir, "skills", "test", ".DS_Store")); !os.IsNotExist(err) {
+		t.Error(".DS_Store should not be copied")
+	}
+}
+
+func TestUploadDirectoryGitHub(t *testing.T) {
+	uploaded := make(map[string]string) // remotePath -> content
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == "PUT" {
+			var body githubPutRequest
+			data, _ := io.ReadAll(r.Body)
+			if err := json.Unmarshal(data, &body); err != nil {
+				t.Errorf("parsing PUT body: %v", err)
+			}
+			decoded, _ := base64.StdEncoding.DecodeString(body.Content)
+			uploaded[r.URL.Path] = string(decoded)
+
+			w.WriteHeader(http.StatusCreated)
+			if _, err := w.Write([]byte(`{"content":{"sha":"new"}}`)); err != nil {
+				t.Errorf("writing response: %v", err)
+			}
+			return
+		}
+		// GET for SHA check returns 404 (new files)
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	srcDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(srcDir, "skill.json"), []byte(`{"name":"test"}`), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(srcDir, "SKILL.md"), []byte("# Test"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	client := NewClient()
+	source := &RepoSource{
+		URL:    server.URL + "/owner/repo",
+		Branch: "main",
+		Token:  "tok",
+	}
+
+	if err := client.UploadDirectory(source, srcDir, "skills/test", "publish test@1.0.0"); err != nil {
+		t.Fatalf("UploadDirectory GitHub: %v", err)
+	}
+
+	if v, ok := uploaded["/api/v3/repos/owner/repo/contents/skills/test/skill.json"]; !ok {
+		t.Error("skill.json not uploaded")
+	} else if v != `{"name":"test"}` {
+		t.Errorf("skill.json content = %q", v)
+	}
+
+	if v, ok := uploaded["/api/v3/repos/owner/repo/contents/skills/test/SKILL.md"]; !ok {
+		t.Error("SKILL.md not uploaded")
+	} else if v != "# Test" {
+		t.Errorf("SKILL.md content = %q", v)
 	}
 }
 
@@ -189,8 +293,7 @@ func TestUpdateIndexLocal(t *testing.T) {
 		Name:        "my-skill",
 		Version:     "1.0.0",
 		Description: "test skill",
-		DownloadURL: "my-skill-1.0.0.tar.gz",
-		Checksum:    "sha256:abc",
+		DownloadURL: "skills/my-skill/",
 	}
 
 	// First publish: creates index.json
@@ -208,6 +311,9 @@ func TestUpdateIndexLocal(t *testing.T) {
 	}
 	if len(idx.Skills) != 1 || idx.Skills[0].Name != "my-skill" {
 		t.Errorf("unexpected index content: %+v", idx.Skills)
+	}
+	if idx.Skills[0].DownloadURL != "skills/my-skill/" {
+		t.Errorf("download_url = %q, want %q", idx.Skills[0].DownloadURL, "skills/my-skill/")
 	}
 
 	// Duplicate without force: should error
@@ -242,7 +348,7 @@ func TestUpdateIndexLocal(t *testing.T) {
 		Name:        "my-skill",
 		Version:     "2.0.0",
 		Description: "v2",
-		DownloadURL: "my-skill-2.0.0.tar.gz",
+		DownloadURL: "skills/my-skill/",
 	}
 	if err := client.UpdateIndex(source, entry2, false); err != nil {
 		t.Fatalf("UpdateIndex new version: %v", err)
