@@ -65,14 +65,14 @@ func loadOrSetupConfig() (*config.Config, error) {
 				forceAnswer, _ := reader.ReadString('\n')
 				forceAnswer = strings.TrimSpace(forceAnswer)
 				if strings.ToLower(forceAnswer) == "y" {
-					if err := cfg.AddRegistry(source.Name, source.URL, source.Token, source.Username, source.Branch); err != nil {
+					if err := cfg.AddRegistry(source.Name, source.URL, source.Token, source.Username, source.Branch, ""); err != nil {
 						fmt.Fprintf(os.Stderr, "Warning: failed to add registry (%v)\n", err)
 					} else {
 						fmt.Printf("Added registry '%s'.\n", source.Name)
 					}
 				}
 			} else {
-				if err := cfg.AddRegistry(source.Name, source.URL, source.Token, source.Username, source.Branch); err != nil {
+				if err := cfg.AddRegistry(source.Name, source.URL, source.Token, source.Username, source.Branch, ""); err != nil {
 					fmt.Fprintf(os.Stderr, "Warning: failed to add registry (%v)\n", err)
 				} else {
 					fmt.Printf("Added registry '%s'.\n", source.Name)

@@ -63,7 +63,7 @@ func TestFullWorkflow(t *testing.T) {
 
 	// Step 2: Create config with registry
 	cfg := config.DefaultConfig(homeDir)
-	if err := cfg.AddRegistry("test-reg", regDir, "", "", ""); err != nil {
+	if err := cfg.AddRegistry("test-reg", regDir, "", "", "", ""); err != nil {
 		t.Fatal(err)
 	}
 	if err := cfg.Save(paths.Config); err != nil {
