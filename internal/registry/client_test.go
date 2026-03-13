@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -181,6 +182,46 @@ func TestDownloadLocal(t *testing.T) {
 	}
 	if string(data) != "local archive" {
 		t.Errorf("expected 'local archive', got %q", string(data))
+	}
+}
+
+func TestCheckResponseRateLimit(t *testing.T) {
+	// Rate limited with no token
+	resp := &http.Response{
+		StatusCode: http.StatusForbidden,
+		Header:     http.Header{"X-Ratelimit-Remaining": []string{"0"}},
+	}
+	err := checkResponse(resp, "https://api.github.com/repos/o/r/contents/x", "")
+	if err == nil {
+		t.Fatal("expected error for rate limit")
+	}
+	if !strings.Contains(err.Error(), "rate limit exceeded") {
+		t.Errorf("expected rate limit message, got: %v", err)
+	}
+	if !strings.Contains(err.Error(), "60/hr") {
+		t.Errorf("expected unauthenticated hint, got: %v", err)
+	}
+
+	// Rate limited with token
+	err = checkResponse(resp, "https://api.github.com/repos/o/r/contents/x", "tok")
+	if err == nil {
+		t.Fatal("expected error for rate limit with token")
+	}
+	if !strings.Contains(err.Error(), "rate limit exceeded") {
+		t.Errorf("expected rate limit message, got: %v", err)
+	}
+
+	// Forbidden but NOT rate limited (no X-RateLimit-Remaining header)
+	resp2 := &http.Response{
+		StatusCode: http.StatusForbidden,
+		Header:     http.Header{},
+	}
+	err = checkResponse(resp2, "https://example.com", "")
+	if err == nil {
+		t.Fatal("expected error for forbidden")
+	}
+	if strings.Contains(err.Error(), "rate limit") {
+		t.Errorf("should not mention rate limit: %v", err)
 	}
 }
 
