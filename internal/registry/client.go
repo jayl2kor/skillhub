@@ -100,7 +100,6 @@ func (c *Client) FetchAllIndexes(sources []RepoSource) (*Index, error) {
 	var indexes []*Index
 
 	for _, src := range sources {
-		src := src
 		idx, err := c.FetchIndex(&src)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "warning: failed to fetch from %s: %v\n", src.Name, err)
