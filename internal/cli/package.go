@@ -84,18 +84,30 @@ func init() {
 	rootCmd.AddCommand(packageCmd)
 }
 
-func createTarGz(srcDir, destPath, prefix string) error {
+func createTarGz(srcDir, destPath, prefix string) (err error) {
 	outFile, err := os.Create(destPath)
 	if err != nil {
 		return fmt.Errorf("creating output file: %w", err)
 	}
-	defer outFile.Close()
+	defer func() {
+		if cerr := outFile.Close(); cerr != nil && err == nil {
+			err = fmt.Errorf("closing output file: %w", cerr)
+		}
+	}()
 
 	gw := gzip.NewWriter(outFile)
-	defer gw.Close()
+	defer func() {
+		if cerr := gw.Close(); cerr != nil && err == nil {
+			err = fmt.Errorf("closing gzip writer: %w", cerr)
+		}
+	}()
 
 	tw := tar.NewWriter(gw)
-	defer tw.Close()
+	defer func() {
+		if cerr := tw.Close(); cerr != nil && err == nil {
+			err = fmt.Errorf("closing tar writer: %w", cerr)
+		}
+	}()
 
 	srcDir, err = filepath.Abs(srcDir)
 	if err != nil {

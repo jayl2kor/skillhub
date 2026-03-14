@@ -34,6 +34,7 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&verbose, "verbose", "v", false, "enable verbose output")
 }
 
+// Execute runs the root cobra command and returns any error.
 func Execute() error {
 	return rootCmd.Execute()
 }

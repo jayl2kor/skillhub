@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -162,7 +163,8 @@ func resolveSkillDir(name string) (dir string, cleanup func(), err error) {
 	}
 
 	client := registry.NewClient()
-	idx, err := client.FetchAllIndexes(sources)
+	ctx := context.Background()
+	idx, err := client.FetchAllIndexes(ctx, sources)
 	if err != nil {
 		return "", noop, fmt.Errorf("fetching indexes: %w", err)
 	}
@@ -209,7 +211,7 @@ func resolveSkillDir(name string) (dir string, cleanup func(), err error) {
 			return "", noop, fmt.Errorf("registry source not found for skill %q", name)
 		}
 		logVerbose("downloading directory %s", entry.DownloadURL)
-		if err := client.DownloadDirectory(matchedSource, entry.DownloadURL, extractDir); err != nil {
+		if err := client.DownloadDirectory(ctx, matchedSource, entry.DownloadURL, extractDir); err != nil {
 			cleanupFn()
 			return "", noop, fmt.Errorf("downloading skill directory: %w", err)
 		}
@@ -217,7 +219,7 @@ func resolveSkillDir(name string) (dir string, cleanup func(), err error) {
 		// Archive mode
 		archivePath := filepath.Join(tmpDir, "archive.tar.gz")
 		logVerbose("downloading %s", downloadURL)
-		if err := client.Download(downloadURL, archivePath, token, username); err != nil {
+		if err := client.Download(ctx, downloadURL, archivePath, token, username); err != nil {
 			cleanupFn()
 			return "", noop, fmt.Errorf("downloading skill: %w", err)
 		}

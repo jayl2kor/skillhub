@@ -30,7 +30,7 @@ var updateCmd = &cobra.Command{
 		}
 
 		client := registry.NewClient()
-		idx, err := client.FetchAllIndexes(sources)
+		idx, err := client.FetchAllIndexes(cmd.Context(), sources)
 		if err != nil {
 			return fmt.Errorf("fetching indexes: %w", err)
 		}
@@ -86,7 +86,7 @@ var updateCmd = &cobra.Command{
 			}
 
 			fmt.Printf("%s: updating %s -> %s\n", name, s.Manifest.Version, entry.Version)
-			if err := inst.Install(name, true, false); err != nil {
+			if err := inst.Install(cmd.Context(), name, true, false); err != nil {
 				fmt.Printf("%s: update failed: %v\n", name, err)
 				continue
 			}

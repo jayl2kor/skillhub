@@ -1,6 +1,8 @@
+// Package installer downloads, extracts, and verifies skill archives.
 package installer
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -12,6 +14,7 @@ import (
 	"github.com/jayl2kor/skillhub/internal/storage"
 )
 
+// Installer downloads and installs skills from configured registries.
 type Installer struct {
 	Paths      *storage.Paths
 	Config     *config.Config
@@ -22,6 +25,7 @@ type Installer struct {
 	RepoFilter string // filter by registry name (empty = all)
 }
 
+// NewInstaller returns an Installer configured with the given paths and config.
 func NewInstaller(paths *storage.Paths, cfg *config.Config) *Installer {
 	return &Installer{
 		Paths:   paths,
@@ -37,7 +41,8 @@ func (inst *Installer) logVerbose(format string, args ...any) {
 	}
 }
 
-func (inst *Installer) Install(name string, force bool, global bool) error {
+// Install downloads and installs the named skill from a registry.
+func (inst *Installer) Install(ctx context.Context, name string, force bool, global bool) error {
 	// 1. Check if already installed
 	inst.logVerbose("checking if %q is already installed", name)
 	if !force && storage.IsInstalled(inst.Paths, name) {
@@ -71,7 +76,7 @@ func (inst *Installer) Install(name string, force bool, global bool) error {
 
 	// 3. Fetch and merge all indexes
 	inst.logVerbose("fetching indexes from %d registry(ies)", len(sources))
-	idx, err := inst.Client.FetchAllIndexes(sources)
+	idx, err := inst.Client.FetchAllIndexes(ctx, sources)
 	if err != nil {
 		return fmt.Errorf("fetching indexes: %w", err)
 	}
@@ -124,14 +129,14 @@ func (inst *Installer) Install(name string, force bool, global bool) error {
 		inst.Client.OnProgress = func(filename string) {
 			inst.logVerbose("  %s", filename)
 		}
-		if err := inst.Client.DownloadDirectory(matchedSource, entry.DownloadURL, tmpDir); err != nil {
+		if err := inst.Client.DownloadDirectory(ctx, matchedSource, entry.DownloadURL, tmpDir); err != nil {
 			return fmt.Errorf("downloading skill directory: %w", err)
 		}
 	} else {
 		// Archive mode: download tar.gz, verify, extract
 		cacheFile := filepath.Join(inst.Paths.CacheDir, fmt.Sprintf("%s-%s.tar.gz", name, entry.Version))
 		inst.logVerbose("downloading %s to %s", downloadURL, cacheFile)
-		if err := inst.Client.Download(downloadURL, cacheFile, token, username); err != nil {
+		if err := inst.Client.Download(ctx, downloadURL, cacheFile, token, username); err != nil {
 			return fmt.Errorf("downloading skill: %w", err)
 		}
 

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -73,7 +74,9 @@ func loadOrSetupConfig() (*config.Config, error) {
 		source, err := registry.ParseRepoURL(repoURL)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: failed to parse URL (%v), skipping registry.\n", err)
-		} else {
+		}
+
+		if err == nil {
 			fmt.Print("Enter token (press Enter to skip): ")
 			token, _ := reader.ReadString('\n')
 			token = strings.TrimSpace(token)
@@ -87,20 +90,18 @@ func loadOrSetupConfig() (*config.Config, error) {
 			}
 
 			client := registry.NewClient()
-			source.Branch = client.DetectDefaultBranch(source)
-			if _, err := client.FetchIndex(source); err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: cannot access registry index (%v)\n", err)
+			setupCtx := context.Background()
+			source.Branch = client.DetectDefaultBranch(setupCtx, source)
+
+			addRegistry := true
+			if _, fetchErr := client.FetchIndex(setupCtx, source); fetchErr != nil {
+				fmt.Fprintf(os.Stderr, "Warning: cannot access registry index (%v)\n", fetchErr)
 				fmt.Print("Add the registry anyway? [y/N]: ")
 				forceAnswer, _ := reader.ReadString('\n')
-				forceAnswer = strings.TrimSpace(forceAnswer)
-				if strings.ToLower(forceAnswer) == "y" {
-					if err := cfg.AddRegistry(source.Name, source.URL, source.Token, source.Username, source.Branch, ""); err != nil {
-						fmt.Fprintf(os.Stderr, "Warning: failed to add registry (%v)\n", err)
-					} else {
-						fmt.Printf("Added registry '%s'.\n", source.Name)
-					}
-				}
-			} else {
+				addRegistry = strings.ToLower(strings.TrimSpace(forceAnswer)) == "y"
+			}
+
+			if addRegistry {
 				if err := cfg.AddRegistry(source.Name, source.URL, source.Token, source.Username, source.Branch, ""); err != nil {
 					fmt.Fprintf(os.Stderr, "Warning: failed to add registry (%v)\n", err)
 				} else {

@@ -32,7 +32,7 @@ var searchCmd = &cobra.Command{
 
 		client := registry.NewClient()
 		logVerbose("fetching indexes from %d registry(ies)", len(sources))
-		idx, err := client.FetchAllIndexes(sources)
+		idx, err := client.FetchAllIndexes(cmd.Context(), sources)
 		if err != nil {
 			return fmt.Errorf("fetching indexes: %w", err)
 		}

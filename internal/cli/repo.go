@@ -37,10 +37,10 @@ var repoAddCmd = &cobra.Command{
 
 		// Detect default branch
 		client := registry.NewClient()
-		source.Branch = client.DetectDefaultBranch(source)
+		source.Branch = client.DetectDefaultBranch(cmd.Context(), source)
 
 		// Verify index is accessible
-		if _, err := client.FetchIndex(source); err != nil {
+		if _, err := client.FetchIndex(cmd.Context(), source); err != nil {
 			return fmt.Errorf("cannot access registry index: %w", err)
 		}
 

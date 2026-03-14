@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"io"
@@ -89,7 +90,7 @@ func TestGetFileSHA(t *testing.T) {
 		Branch: "main",
 	}
 
-	sha, err := client.GetFileSHA(source, "skills/my-skill/skill.json")
+	sha, err := client.GetFileSHA(context.Background(), source, "skills/my-skill/skill.json")
 	if err != nil {
 		t.Fatalf("GetFileSHA existing: %v", err)
 	}
@@ -97,7 +98,7 @@ func TestGetFileSHA(t *testing.T) {
 		t.Errorf("expected sha abc123, got %q", sha)
 	}
 
-	sha, err = client.GetFileSHA(source, "skills/my-skill/missing.md")
+	sha, err = client.GetFileSHA(context.Background(), source, "skills/my-skill/missing.md")
 	if err != nil {
 		t.Fatalf("GetFileSHA missing: %v", err)
 	}
@@ -137,7 +138,7 @@ func TestUploadFileGitHub(t *testing.T) {
 	}
 
 	content := []byte(`{"name":"my-skill"}`)
-	err := client.UploadFile(source, "skills/my-skill/skill.json", content, "", "publish my-skill@1.0.0")
+	err := client.UploadFile(context.Background(), source, "skills/my-skill/skill.json", content, "", "publish my-skill@1.0.0")
 	if err != nil {
 		t.Fatalf("UploadFile: %v", err)
 	}
@@ -163,7 +164,7 @@ func TestUploadFileLocal(t *testing.T) {
 	source := &RepoSource{URL: dir}
 
 	content := []byte(`{"name":"my-skill"}`)
-	err := client.UploadFile(source, "skills/my-skill/skill.json", content, "", "")
+	err := client.UploadFile(context.Background(), source, "skills/my-skill/skill.json", content, "", "")
 	if err != nil {
 		t.Fatalf("UploadFile local: %v", err)
 	}
@@ -201,7 +202,7 @@ func TestUploadDirectoryLocal(t *testing.T) {
 	client := NewClient()
 	source := &RepoSource{Name: "local", URL: regDir}
 
-	if err := client.UploadDirectory(source, srcDir, "skills/test", "publish"); err != nil {
+	if err := client.UploadDirectory(context.Background(), source, srcDir, "skills/test", "publish"); err != nil {
 		t.Fatalf("UploadDirectory: %v", err)
 	}
 
@@ -267,7 +268,7 @@ func TestUploadDirectoryGitHub(t *testing.T) {
 		Token:  "tok",
 	}
 
-	if err := client.UploadDirectory(source, srcDir, "skills/test", "publish test@1.0.0"); err != nil {
+	if err := client.UploadDirectory(context.Background(), source, srcDir, "skills/test", "publish test@1.0.0"); err != nil {
 		t.Fatalf("UploadDirectory GitHub: %v", err)
 	}
 
@@ -297,7 +298,7 @@ func TestUpdateIndexLocal(t *testing.T) {
 	}
 
 	// First publish: creates index.json
-	if err := client.UpdateIndex(source, entry, false); err != nil {
+	if err := client.UpdateIndex(context.Background(), source, entry, false); err != nil {
 		t.Fatalf("UpdateIndex create: %v", err)
 	}
 
@@ -317,14 +318,14 @@ func TestUpdateIndexLocal(t *testing.T) {
 	}
 
 	// Duplicate without force: should error
-	err = client.UpdateIndex(source, entry, false)
+	err = client.UpdateIndex(context.Background(), source, entry, false)
 	if err == nil {
 		t.Fatal("expected error for duplicate version without force")
 	}
 
 	// Duplicate with force: should succeed
 	entry.Description = "updated skill"
-	if err := client.UpdateIndex(source, entry, true); err != nil {
+	if err := client.UpdateIndex(context.Background(), source, entry, true); err != nil {
 		t.Fatalf("UpdateIndex force: %v", err)
 	}
 
@@ -350,7 +351,7 @@ func TestUpdateIndexLocal(t *testing.T) {
 		Description: "v2",
 		DownloadURL: "skills/my-skill/",
 	}
-	if err := client.UpdateIndex(source, entry2, false); err != nil {
+	if err := client.UpdateIndex(context.Background(), source, entry2, false); err != nil {
 		t.Fatalf("UpdateIndex new version: %v", err)
 	}
 

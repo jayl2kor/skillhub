@@ -29,7 +29,7 @@ var installCmd = &cobra.Command{
 		inst.AgentTool = installTool
 		inst.Version = installVersion
 		inst.RepoFilter = installRepo
-		return inst.Install(args[0], forceInstall, globalInstall)
+		return inst.Install(cmd.Context(), args[0], forceInstall, globalInstall)
 	},
 }
 

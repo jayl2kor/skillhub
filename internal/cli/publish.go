@@ -132,7 +132,7 @@ var publishCmd = &cobra.Command{
 
 		// Check version conflict via index
 		if !publishForce {
-			idx, err := client.FetchIndex(reg)
+			idx, err := client.FetchIndex(cmd.Context(), reg)
 			if err == nil {
 				if existing := idx.FindVersion(m.Name, m.Version); existing != nil {
 					return fmt.Errorf("version %s@%s already exists in %s (use --force to overwrite)", m.Name, m.Version, reg.Name)
@@ -148,7 +148,7 @@ var publishCmd = &cobra.Command{
 			}
 		}
 
-		if err := client.UploadDirectory(reg, dir, destPrefix, commitMsg); err != nil {
+		if err := client.UploadDirectory(cmd.Context(), reg, dir, destPrefix, commitMsg); err != nil {
 			return fmt.Errorf("uploading skill directory: %w", err)
 		}
 
@@ -160,7 +160,7 @@ var publishCmd = &cobra.Command{
 			Tags:        m.Tags,
 			DownloadURL: destPrefix + "/",
 		}
-		if err := client.UpdateIndex(reg, entry, publishForce); err != nil {
+		if err := client.UpdateIndex(cmd.Context(), reg, entry, publishForce); err != nil {
 			return fmt.Errorf("updating index: %w", err)
 		}
 
