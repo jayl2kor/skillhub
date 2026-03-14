@@ -44,7 +44,7 @@ var repoUpdateCmd = &cobra.Command{
 			}
 
 			logVerbose("fetching index from %s", r.Name)
-			idx, err := client.FetchIndex(src)
+			idx, err := client.FetchIndex(cmd.Context(), src)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "WARNING: failed to update %q: %v\n", r.Name, err)
 				continue

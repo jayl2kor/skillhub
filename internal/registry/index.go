@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// IndexEntry describes a single skill in a registry index.
 type IndexEntry struct {
 	Name        string   `json:"name"`
 	Version     string   `json:"version"`
@@ -16,10 +17,12 @@ type IndexEntry struct {
 	Registry    string   `json:"-"`
 }
 
+// Index holds the full list of skills available in a registry.
 type Index struct {
 	Skills []IndexEntry `json:"skills"`
 }
 
+// ParseIndex unmarshals JSON data into an Index.
 func ParseIndex(data []byte) (*Index, error) {
 	var idx Index
 	if err := json.Unmarshal(data, &idx); err != nil {
@@ -28,6 +31,7 @@ func ParseIndex(data []byte) (*Index, error) {
 	return &idx, nil
 }
 
+// Search returns entries whose name, description, or tags match the query.
 func (idx *Index) Search(query string) []IndexEntry {
 	if query == "*" || query == "" {
 		return idx.Skills
@@ -60,6 +64,7 @@ func matchesQuery(entry IndexEntry, query string) bool {
 	return false
 }
 
+// Find returns the first entry with the given name, or nil if not found.
 func (idx *Index) Find(name string) *IndexEntry {
 	for _, entry := range idx.Skills {
 		if entry.Name == name {
@@ -79,6 +84,7 @@ func (idx *Index) FindVersion(name, version string) *IndexEntry {
 	return nil
 }
 
+// MergeIndexes combines multiple indexes into a single unified index.
 func MergeIndexes(indexes ...*Index) *Index {
 	merged := &Index{}
 	for _, idx := range indexes {

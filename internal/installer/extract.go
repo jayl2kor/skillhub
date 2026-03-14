@@ -12,6 +12,7 @@ import (
 
 const maxFileSize = 100 * 1024 * 1024 // 100MB
 
+// ExtractTarGz extracts a gzip-compressed tar archive into destDir.
 func ExtractTarGz(archivePath string, destDir string) error {
 	f, err := os.Open(archivePath)
 	if err != nil {

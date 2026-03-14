@@ -1,3 +1,4 @@
+// Package storage manages local skill directories and path resolution.
 package storage
 
 import (
@@ -6,6 +7,7 @@ import (
 	"path/filepath"
 )
 
+// Paths holds the directory layout for skillhub's storage.
 type Paths struct {
 	Home        string
 	Config      string
@@ -16,6 +18,7 @@ type Paths struct {
 	ProjectRoot string // project root for local skill lookup; empty means auto-detect
 }
 
+// NewPaths returns a Paths rooted at the given home directory.
 func NewPaths(home string) *Paths {
 	return &Paths{
 		Home:      home,
@@ -27,6 +30,7 @@ func NewPaths(home string) *Paths {
 	}
 }
 
+// DefaultHome returns the default skillhub home directory path.
 func DefaultHome() string {
 	if env := os.Getenv("SKILLHUB_HOME"); env != "" {
 		return env
@@ -40,6 +44,7 @@ func DefaultHome() string {
 	return filepath.Join(home, ".skillhub")
 }
 
+// EnsureDirectories creates all storage directories if they do not exist.
 func (p *Paths) EnsureDirectories() error {
 	dirs := []string{p.Home, p.SkillsDir, p.CacheDir, p.LogDir, p.TmpDir}
 	for _, dir := range dirs {
@@ -50,6 +55,7 @@ func (p *Paths) EnsureDirectories() error {
 	return nil
 }
 
+// SkillDir returns the directory path for the named skill.
 func (p *Paths) SkillDir(name string) string {
 	return filepath.Join(p.SkillsDir, name)
 }

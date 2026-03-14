@@ -10,8 +10,10 @@ import (
 	"github.com/jayl2kor/skillhub/internal/skill"
 )
 
+// PromptRunner runs prompt-type skills by printing the entry file contents.
 type PromptRunner struct{}
 
+// Run outputs the content of the skill's entry file to stdout.
 func (r *PromptRunner) Run(_ context.Context, s skill.InstalledSkill, _ []string) error {
 	entry := s.Manifest.Entry
 

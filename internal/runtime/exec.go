@@ -17,6 +17,7 @@ type ExecRunner struct {
 	Args    []string // extra args before the script path
 }
 
+// Run executes the skill's entry file using the configured interpreter.
 func (r *ExecRunner) Run(ctx context.Context, s skill.InstalledSkill, args []string) error {
 	entry := s.Manifest.Entry
 

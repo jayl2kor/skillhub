@@ -6,16 +6,19 @@ import (
 	"strings"
 )
 
+// SemVer represents a semantic version with major, minor, and patch components.
 type SemVer struct {
 	Major int
 	Minor int
 	Patch int
 }
 
+// String returns the semver string representation "Major.Minor.Patch".
 func (v SemVer) String() string {
 	return fmt.Sprintf("%d.%d.%d", v.Major, v.Minor, v.Patch)
 }
 
+// ParseVersion parses a "X.Y.Z" version string into a SemVer.
 func ParseVersion(s string) (SemVer, error) {
 	parts := strings.Split(s, ".")
 	if len(parts) != 3 {

@@ -3,6 +3,7 @@ package installer
 import (
 	"archive/tar"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -99,7 +100,7 @@ func TestInstall(t *testing.T) {
 
 	inst := NewInstaller(paths, cfg)
 
-	if err := inst.Install("test-skill", false, false); err != nil {
+	if err := inst.Install(context.Background(), "test-skill", false, false); err != nil {
 		t.Fatalf("Install: %v", err)
 	}
 
@@ -132,16 +133,16 @@ func TestInstallAlreadyInstalled(t *testing.T) {
 
 	inst := NewInstaller(paths, cfg)
 
-	if err := inst.Install("test-skill", false, false); err != nil {
+	if err := inst.Install(context.Background(), "test-skill", false, false); err != nil {
 		t.Fatalf("first Install: %v", err)
 	}
 
-	err := inst.Install("test-skill", false, false)
+	err := inst.Install(context.Background(), "test-skill", false, false)
 	if err == nil {
 		t.Error("expected error for already installed skill")
 	}
 
-	if err := inst.Install("test-skill", true, false); err != nil {
+	if err := inst.Install(context.Background(), "test-skill", true, false); err != nil {
 		t.Errorf("force Install: %v", err)
 	}
 }
@@ -165,7 +166,7 @@ func TestInstallNotFound(t *testing.T) {
 	}
 
 	inst := NewInstaller(paths, cfg)
-	err := inst.Install("nonexistent", false, false)
+	err := inst.Install(context.Background(), "nonexistent", false, false)
 	if err == nil {
 		t.Error("expected error for nonexistent skill")
 	}
@@ -233,7 +234,7 @@ func TestInstallDirectoryMode(t *testing.T) {
 
 	inst := NewInstaller(paths, cfg)
 
-	if err := inst.Install("dir-skill", false, false); err != nil {
+	if err := inst.Install(context.Background(), "dir-skill", false, false); err != nil {
 		t.Fatalf("Install directory mode: %v", err)
 	}
 
@@ -266,18 +267,18 @@ func TestInstallDirectoryModeForceReinstall(t *testing.T) {
 
 	inst := NewInstaller(paths, cfg)
 
-	if err := inst.Install("dir-skill", false, false); err != nil {
+	if err := inst.Install(context.Background(), "dir-skill", false, false); err != nil {
 		t.Fatalf("first Install: %v", err)
 	}
 
 	// Should fail without --force
-	err := inst.Install("dir-skill", false, false)
+	err := inst.Install(context.Background(), "dir-skill", false, false)
 	if err == nil {
 		t.Error("expected error for already installed skill")
 	}
 
 	// Should succeed with --force
-	if err := inst.Install("dir-skill", true, false); err != nil {
+	if err := inst.Install(context.Background(), "dir-skill", true, false); err != nil {
 		t.Errorf("force Install directory mode: %v", err)
 	}
 }
@@ -292,7 +293,7 @@ func TestInstallNoRegistries(t *testing.T) {
 	cfg := &config.Config{}
 
 	inst := NewInstaller(paths, cfg)
-	err := inst.Install("test", false, false)
+	err := inst.Install(context.Background(), "test", false, false)
 	if err == nil {
 		t.Error("expected error when no registries configured")
 	}

@@ -40,7 +40,7 @@ var pullCmd = &cobra.Command{
 		}
 
 		client := registry.NewClient()
-		idx, err := client.FetchAllIndexes(sources)
+		idx, err := client.FetchAllIndexes(cmd.Context(), sources)
 		if err != nil {
 			return fmt.Errorf("fetching indexes: %w", err)
 		}
@@ -85,7 +85,7 @@ var pullCmd = &cobra.Command{
 			}
 
 			logVerbose("downloading directory %s", entry.DownloadURL)
-			if err := client.DownloadDirectory(matchedSource, entry.DownloadURL, destPath); err != nil {
+			if err := client.DownloadDirectory(cmd.Context(), matchedSource, entry.DownloadURL, destPath); err != nil {
 				return fmt.Errorf("downloading skill directory: %w", err)
 			}
 
@@ -96,7 +96,7 @@ var pullCmd = &cobra.Command{
 			destPath := filepath.Join(pullDest, filename)
 
 			logVerbose("downloading %s", downloadURL)
-			if err := client.Download(downloadURL, destPath, token, username); err != nil {
+			if err := client.Download(cmd.Context(), downloadURL, destPath, token, username); err != nil {
 				return fmt.Errorf("downloading skill: %w", err)
 			}
 

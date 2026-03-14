@@ -1,3 +1,4 @@
+// Package config manages skillhub configuration loading and persistence.
 package config
 
 import (
@@ -8,6 +9,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// RegistryEntry describes a single configured skill registry.
 type RegistryEntry struct {
 	Name         string `yaml:"name"`
 	URL          string `yaml:"url"`
@@ -17,6 +19,7 @@ type RegistryEntry struct {
 	SkillsPrefix string `yaml:"skills_prefix,omitempty"`
 }
 
+// Config holds the top-level skillhub configuration.
 type Config struct {
 	Registries []RegistryEntry `yaml:"registries"`
 	InstallDir string          `yaml:"install_dir"`
@@ -24,6 +27,7 @@ type Config struct {
 	LogDir     string          `yaml:"log_dir"`
 }
 
+// DefaultConfig returns a Config with default directory paths under home.
 func DefaultConfig(home string) *Config {
 	return &Config{
 		Registries: []RegistryEntry{},
@@ -33,6 +37,7 @@ func DefaultConfig(home string) *Config {
 	}
 }
 
+// Load reads and parses a YAML config file from the given path.
 func Load(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -47,6 +52,7 @@ func Load(path string) (*Config, error) {
 	return &cfg, nil
 }
 
+// Save writes the config as YAML to the given path.
 func (c *Config) Save(path string) error {
 	data, err := yaml.Marshal(c)
 	if err != nil {
@@ -60,6 +66,7 @@ func (c *Config) Save(path string) error {
 	return nil
 }
 
+// Validate checks that all registries have required fields.
 func (c *Config) Validate() error {
 	for i, r := range c.Registries {
 		if r.Name == "" {
@@ -72,10 +79,11 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-func (c *Config) AddRegistry(name, url, token, username, branch, skillsPrefix string) error {
+// AddRegistry adds or updates a registry entry by name.
+func (c *Config) AddRegistry(name, rawURL, token, username, branch, skillsPrefix string) error {
 	for i, r := range c.Registries {
 		if r.Name == name {
-			c.Registries[i].URL = url
+			c.Registries[i].URL = rawURL
 			c.Registries[i].Token = token
 			c.Registries[i].Username = username
 			c.Registries[i].Branch = branch
@@ -83,10 +91,11 @@ func (c *Config) AddRegistry(name, url, token, username, branch, skillsPrefix st
 			return nil
 		}
 	}
-	c.Registries = append(c.Registries, RegistryEntry{Name: name, URL: url, Token: token, Username: username, Branch: branch, SkillsPrefix: skillsPrefix})
+	c.Registries = append(c.Registries, RegistryEntry{Name: name, URL: rawURL, Token: token, Username: username, Branch: branch, SkillsPrefix: skillsPrefix})
 	return nil
 }
 
+// RemoveRegistry deletes the registry entry with the given name.
 func (c *Config) RemoveRegistry(name string) error {
 	for i, r := range c.Registries {
 		if r.Name == name {

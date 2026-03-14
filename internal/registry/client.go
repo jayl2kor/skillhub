@@ -1,6 +1,8 @@
+// Package registry handles communication with remote skill registries.
 package registry
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -19,11 +21,13 @@ const (
 	maxAPIResponseSize = 10 * 1024 * 1024  // 10MB for API/JSON responses
 )
 
+// Client communicates with remote skill registries.
 type Client struct {
 	HTTPClient *http.Client
 	OnProgress func(filename string) // called for each file downloaded in directory mode
 }
 
+// NewClient returns a Client with sensible default HTTP settings.
 func NewClient() *Client {
 	return &Client{
 		HTTPClient: &http.Client{
@@ -44,7 +48,7 @@ func NewClient() *Client {
 // DetectDefaultBranch queries the GitHub API to find the default branch.
 // For non-github.com hosts, it uses the /api/v3/ endpoint.
 // Returns "main" as fallback if detection fails.
-func (c *Client) DetectDefaultBranch(source *RepoSource) string {
+func (c *Client) DetectDefaultBranch(ctx context.Context, source *RepoSource) string {
 	if isLocalPath(source.URL) {
 		return "main"
 	}
@@ -62,7 +66,7 @@ func (c *Client) DetectDefaultBranch(source *RepoSource) string {
 		apiURL = fmt.Sprintf("%s://%s/api/v3/repos/%s", u.Scheme, u.Host, ownerRepo)
 	}
 
-	data, err := c.fetch(apiURL, source.Token, source.Username)
+	data, err := c.fetch(ctx, apiURL, source.Token, source.Username)
 	if err != nil {
 		return "main"
 	}
@@ -76,10 +80,11 @@ func (c *Client) DetectDefaultBranch(source *RepoSource) string {
 	return repo.DefaultBranch
 }
 
-func (c *Client) FetchIndex(source *RepoSource) (*Index, error) {
+// FetchIndex downloads and parses the index from a single registry source.
+func (c *Client) FetchIndex(ctx context.Context, source *RepoSource) (*Index, error) {
 	indexURL := source.IndexURL()
 
-	data, err := c.fetch(indexURL, source.Token, source.Username)
+	data, err := c.fetch(ctx, indexURL, source.Token, source.Username)
 	if err != nil {
 		return nil, fmt.Errorf("fetching index from %s: %w", source.Name, err)
 	}
@@ -96,12 +101,12 @@ func (c *Client) FetchIndex(source *RepoSource) (*Index, error) {
 	return idx, nil
 }
 
-func (c *Client) FetchAllIndexes(sources []RepoSource) (*Index, error) {
+// FetchAllIndexes fetches indexes from all sources and merges them.
+func (c *Client) FetchAllIndexes(ctx context.Context, sources []RepoSource) (*Index, error) {
 	var indexes []*Index
 
 	for _, src := range sources {
-		src := src
-		idx, err := c.FetchIndex(&src)
+		idx, err := c.FetchIndex(ctx, &src)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "warning: failed to fetch from %s: %v\n", src.Name, err)
 			continue
@@ -112,7 +117,8 @@ func (c *Client) FetchAllIndexes(sources []RepoSource) (*Index, error) {
 	return MergeIndexes(indexes...), nil
 }
 
-func (c *Client) Download(rawURL, dest, token, username string) error {
+// Download fetches a file from rawURL and writes it to dest.
+func (c *Client) Download(ctx context.Context, rawURL, dest, token, username string) error {
 	if isLocalPath(rawURL) {
 		data, err := os.ReadFile(rawURL)
 		if err != nil {
@@ -121,7 +127,7 @@ func (c *Client) Download(rawURL, dest, token, username string) error {
 		return os.WriteFile(dest, data, 0644)
 	}
 
-	req, err := c.newRequest(rawURL, token, username)
+	req, err := c.newRequest(ctx, rawURL, token, username)
 	if err != nil {
 		return fmt.Errorf("creating request for %s: %w", rawURL, err)
 	}
@@ -169,7 +175,7 @@ type githubContentEntry struct {
 // DownloadDirectory downloads all files from a directory source into destDir.
 // For local paths, it copies the directory tree. For GitHub, it uses the Contents API.
 // If OnProgress is set, it is called with each file's relative name after download.
-func (c *Client) DownloadDirectory(source *RepoSource, dirPath, destDir string) error {
+func (c *Client) DownloadDirectory(ctx context.Context, source *RepoSource, dirPath, destDir string) error {
 	dirPath = strings.TrimSuffix(dirPath, "/")
 
 	if isLocalPath(source.URL) {
@@ -177,7 +183,7 @@ func (c *Client) DownloadDirectory(source *RepoSource, dirPath, destDir string) 
 		return c.copyDirectory(srcDir, destDir)
 	}
 
-	return c.downloadGitHubDirectory(source, dirPath, destDir)
+	return c.downloadGitHubDirectory(ctx, source, dirPath, destDir)
 }
 
 func (c *Client) copyDirectory(srcDir, destDir string) error {
@@ -223,10 +229,10 @@ func (c *Client) copyDirectory(srcDir, destDir string) error {
 // maxConcurrentDownloads limits the number of concurrent file downloads.
 const maxConcurrentDownloads = 8
 
-func (c *Client) downloadGitHubDirectory(source *RepoSource, dirPath, destDir string) error {
+func (c *Client) downloadGitHubDirectory(ctx context.Context, source *RepoSource, dirPath, destDir string) error {
 	apiURL := source.ContentsAPIURL(dirPath)
 
-	data, err := c.fetch(apiURL, source.Token, source.Username)
+	data, err := c.fetch(ctx, apiURL, source.Token, source.Username)
 	if err != nil {
 		return fmt.Errorf("listing directory %s: %w", dirPath, err)
 	}
@@ -253,7 +259,7 @@ func (c *Client) downloadGitHubDirectory(source *RepoSource, dirPath, destDir st
 		if err := os.MkdirAll(destPath, 0755); err != nil {
 			return fmt.Errorf("creating directory %s: %w", destPath, err)
 		}
-		if err := c.downloadGitHubDirectory(source, entry.Path, destPath); err != nil {
+		if err := c.downloadGitHubDirectory(ctx, source, entry.Path, destPath); err != nil {
 			return err
 		}
 	}
@@ -280,7 +286,7 @@ func (c *Client) downloadGitHubDirectory(source *RepoSource, dirPath, destDir st
 
 			destPath := filepath.Join(destDir, entry.Name)
 			downloadURL := source.ResolveDownloadURL(entry.Path)
-			if err := c.Download(downloadURL, destPath, source.Token, source.Username); err != nil {
+			if err := c.Download(ctx, downloadURL, destPath, source.Token, source.Username); err != nil {
 				mu.Lock()
 				if firstErr == nil {
 					firstErr = fmt.Errorf("downloading %s: %w", entry.Name, err)
@@ -298,8 +304,8 @@ func (c *Client) downloadGitHubDirectory(source *RepoSource, dirPath, destDir st
 	return firstErr
 }
 
-func (c *Client) newRequest(rawURL, token, username string) (*http.Request, error) {
-	req, err := http.NewRequest("GET", rawURL, nil)
+func (c *Client) newRequest(ctx context.Context, rawURL, token, username string) (*http.Request, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", rawURL, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -353,12 +359,12 @@ func checkResponse(resp *http.Response, rawURL, token string) error {
 	return nil
 }
 
-func (c *Client) fetch(rawURL, token, username string) ([]byte, error) {
+func (c *Client) fetch(ctx context.Context, rawURL, token, username string) ([]byte, error) {
 	if isLocalPath(rawURL) {
 		return os.ReadFile(rawURL)
 	}
 
-	req, err := c.newRequest(rawURL, token, username)
+	req, err := c.newRequest(ctx, rawURL, token, username)
 	if err != nil {
 		return nil, err
 	}
