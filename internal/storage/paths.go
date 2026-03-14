@@ -1,3 +1,4 @@
+// Package storage manages local skill directories and path resolution.
 package storage
 
 import (

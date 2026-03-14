@@ -1,3 +1,4 @@
+// Package skill defines skill manifests, versioning, and installation metadata.
 package skill
 
 import (

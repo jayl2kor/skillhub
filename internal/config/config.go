@@ -1,3 +1,4 @@
+// Package config manages skillhub configuration loading and persistence.
 package config
 
 import (

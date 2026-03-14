@@ -1,3 +1,4 @@
+// Package runtime provides runners that execute installed skills.
 package runtime
 
 import (

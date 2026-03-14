@@ -1,3 +1,4 @@
+// Package installer downloads, extracts, and verifies skill archives.
 package installer
 
 import (

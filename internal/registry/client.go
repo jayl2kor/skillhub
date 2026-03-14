@@ -1,3 +1,4 @@
+// Package registry handles communication with remote skill registries.
 package registry
 
 import (
