@@ -17,7 +17,11 @@ func printFormatted(data any) error {
 		enc.SetIndent("", "  ")
 		return enc.Encode(data)
 	case "yaml":
-		return yaml.NewEncoder(os.Stdout).Encode(data)
+		enc := yaml.NewEncoder(os.Stdout)
+		if err := enc.Encode(data); err != nil {
+			return err
+		}
+		return enc.Close()
 	default:
 		return fmt.Errorf("unsupported output format %q", outputFormat)
 	}

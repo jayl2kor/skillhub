@@ -16,7 +16,10 @@ func DetectProjectRoot() string {
 	if err == nil {
 		return strings.TrimSpace(string(out))
 	}
-	cwd, _ := os.Getwd()
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "."
+	}
 	return cwd
 }
 
