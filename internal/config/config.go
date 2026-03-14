@@ -72,10 +72,10 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-func (c *Config) AddRegistry(name, url, token, username, branch, skillsPrefix string) error {
+func (c *Config) AddRegistry(name, rawURL, token, username, branch, skillsPrefix string) error {
 	for i, r := range c.Registries {
 		if r.Name == name {
-			c.Registries[i].URL = url
+			c.Registries[i].URL = rawURL
 			c.Registries[i].Token = token
 			c.Registries[i].Username = username
 			c.Registries[i].Branch = branch
@@ -83,7 +83,7 @@ func (c *Config) AddRegistry(name, url, token, username, branch, skillsPrefix st
 			return nil
 		}
 	}
-	c.Registries = append(c.Registries, RegistryEntry{Name: name, URL: url, Token: token, Username: username, Branch: branch, SkillsPrefix: skillsPrefix})
+	c.Registries = append(c.Registries, RegistryEntry{Name: name, URL: rawURL, Token: token, Username: username, Branch: branch, SkillsPrefix: skillsPrefix})
 	return nil
 }
 
