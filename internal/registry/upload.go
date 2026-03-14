@@ -2,6 +2,7 @@ package registry
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -24,14 +25,14 @@ type githubFileInfo struct {
 
 // GetFileSHA returns the blob SHA of a file in a GitHub repository.
 // Returns "" if the file does not exist (404).
-func (c *Client) GetFileSHA(source *RepoSource, path string) (string, error) {
+func (c *Client) GetFileSHA(ctx context.Context, source *RepoSource, path string) (string, error) {
 	if source.IsLocal() {
 		return "", nil
 	}
 
 	apiURL := source.ContentsAPIPutURL(path) + "?ref=" + source.branch()
 
-	req, err := c.newRequest(apiURL, source.Token, source.Username)
+	req, err := c.newRequest(ctx, apiURL, source.Token, source.Username)
 	if err != nil {
 		return "", fmt.Errorf("creating request: %w", err)
 	}
@@ -64,7 +65,7 @@ func (c *Client) GetFileSHA(source *RepoSource, path string) (string, error) {
 
 // UploadFile uploads content to a registry. For local registries it writes
 // directly to the filesystem. For GitHub it uses the Contents API.
-func (c *Client) UploadFile(source *RepoSource, path string, content []byte, sha, message string) error {
+func (c *Client) UploadFile(ctx context.Context, source *RepoSource, path string, content []byte, sha, message string) error {
 	if source.IsLocal() {
 		dest := filepath.Join(source.URL, path)
 		if err := os.MkdirAll(filepath.Dir(dest), 0755); err != nil {
@@ -87,7 +88,7 @@ func (c *Client) UploadFile(source *RepoSource, path string, content []byte, sha
 		return fmt.Errorf("marshaling request: %w", err)
 	}
 
-	req, err := http.NewRequest("PUT", apiURL, bytes.NewReader(jsonBody))
+	req, err := http.NewRequestWithContext(ctx, "PUT", apiURL, bytes.NewReader(jsonBody))
 	if err != nil {
 		return fmt.Errorf("creating request: %w", err)
 	}
@@ -120,7 +121,7 @@ func (c *Client) UploadFile(source *RepoSource, path string, content []byte, sha
 // UploadDirectory uploads all files from srcDir to destPrefix in the registry.
 // For local registries it copies the directory tree. For GitHub it uploads
 // each file via the Contents API. Hidden files/directories are skipped.
-func (c *Client) UploadDirectory(source *RepoSource, srcDir, destPrefix, message string) error {
+func (c *Client) UploadDirectory(ctx context.Context, source *RepoSource, srcDir, destPrefix, message string) error {
 	if source.IsLocal() {
 		destDir := filepath.Join(source.URL, destPrefix)
 		if err := os.MkdirAll(destDir, 0755); err != nil {
@@ -178,12 +179,12 @@ func (c *Client) UploadDirectory(source *RepoSource, srcDir, destPrefix, message
 			return fmt.Errorf("reading %s: %w", rel, err)
 		}
 
-		sha, err := c.GetFileSHA(source, remotePath)
+		sha, err := c.GetFileSHA(ctx, source, remotePath)
 		if err != nil {
 			return fmt.Errorf("checking %s: %w", remotePath, err)
 		}
 
-		if err := c.UploadFile(source, remotePath, content, sha, message); err != nil {
+		if err := c.UploadFile(ctx, source, remotePath, content, sha, message); err != nil {
 			return fmt.Errorf("uploading %s: %w", rel, err)
 		}
 
@@ -197,7 +198,7 @@ func (c *Client) UploadDirectory(source *RepoSource, srcDir, destPrefix, message
 // UpdateIndex fetches the current index.json from the registry, upserts the
 // given entry, and writes it back. If force is false and a matching
 // name+version already exists, it returns an error.
-func (c *Client) UpdateIndex(source *RepoSource, entry IndexEntry, force bool) error {
+func (c *Client) UpdateIndex(ctx context.Context, source *RepoSource, entry IndexEntry, force bool) error {
 	idx := &Index{}
 
 	if source.IsLocal() {
@@ -210,7 +211,7 @@ func (c *Client) UpdateIndex(source *RepoSource, entry IndexEntry, force bool) e
 			}
 		}
 	} else {
-		data, err := c.fetch(source.IndexURL(), source.Token, source.Username)
+		data, err := c.fetch(ctx, source.IndexURL(), source.Token, source.Username)
 		if err == nil {
 			parsed, parseErr := ParseIndex(data)
 			if parseErr == nil {
@@ -247,11 +248,11 @@ func (c *Client) UpdateIndex(source *RepoSource, entry IndexEntry, force bool) e
 		return os.WriteFile(filepath.Join(source.URL, "index.json"), indexData, 0644)
 	}
 
-	sha, err := c.GetFileSHA(source, "index.json")
+	sha, err := c.GetFileSHA(ctx, source, "index.json")
 	if err != nil {
 		return fmt.Errorf("getting index.json SHA: %w", err)
 	}
 
 	msg := fmt.Sprintf("update index: %s@%s", entry.Name, entry.Version)
-	return c.UploadFile(source, "index.json", indexData, sha, msg)
+	return c.UploadFile(ctx, source, "index.json", indexData, sha, msg)
 }

@@ -125,6 +125,7 @@ var publishCmd = &cobra.Command{
 		}
 
 		client := registry.NewClient()
+		ctx := cmd.Context()
 
 		if !reg.IsLocal() && reg.Token == "" && reg.Username == "" {
 			return fmt.Errorf("registry %q has no credentials for write access; use --token <PAT> or configure via 'skillhub repo add <url> --token <PAT>'", reg.Name)
@@ -132,7 +133,7 @@ var publishCmd = &cobra.Command{
 
 		// Check version conflict via index
 		if !publishForce {
-			idx, err := client.FetchIndex(reg)
+			idx, err := client.FetchIndex(ctx, reg)
 			if err == nil {
 				if existing := idx.FindVersion(m.Name, m.Version); existing != nil {
 					return fmt.Errorf("version %s@%s already exists in %s (use --force to overwrite)", m.Name, m.Version, reg.Name)
@@ -148,7 +149,7 @@ var publishCmd = &cobra.Command{
 			}
 		}
 
-		if err := client.UploadDirectory(reg, dir, destPrefix, commitMsg); err != nil {
+		if err := client.UploadDirectory(ctx, reg, dir, destPrefix, commitMsg); err != nil {
 			return fmt.Errorf("uploading skill directory: %w", err)
 		}
 
@@ -160,7 +161,7 @@ var publishCmd = &cobra.Command{
 			Tags:        m.Tags,
 			DownloadURL: destPrefix + "/",
 		}
-		if err := client.UpdateIndex(reg, entry, publishForce); err != nil {
+		if err := client.UpdateIndex(ctx, reg, entry, publishForce); err != nil {
 			return fmt.Errorf("updating index: %w", err)
 		}
 

@@ -31,6 +31,7 @@ var repoUpdateCmd = &cobra.Command{
 		}
 
 		client := registry.NewClient()
+		ctx := cmd.Context()
 		var updated int
 
 		for _, r := range cfg.Registries {
@@ -44,7 +45,7 @@ var repoUpdateCmd = &cobra.Command{
 			}
 
 			logVerbose("fetching index from %s", r.Name)
-			idx, err := client.FetchIndex(src)
+			idx, err := client.FetchIndex(ctx, src)
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "WARNING: failed to update %q: %v\n", r.Name, err)
 				continue

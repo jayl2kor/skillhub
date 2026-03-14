@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"os"
 	"strings"
@@ -89,10 +90,11 @@ func loadOrSetupConfig() (*config.Config, error) {
 			}
 
 			client := registry.NewClient()
-			source.Branch = client.DetectDefaultBranch(source)
+			ctx := context.Background()
+			source.Branch = client.DetectDefaultBranch(ctx, source)
 
 			addRegistry := true
-			if _, fetchErr := client.FetchIndex(source); fetchErr != nil {
+			if _, fetchErr := client.FetchIndex(ctx, source); fetchErr != nil {
 				fmt.Fprintf(os.Stderr, "Warning: cannot access registry index (%v)\n", fetchErr)
 				fmt.Print("Add the registry anyway? [y/N]: ")
 				forceAnswer, _ := reader.ReadString('\n')

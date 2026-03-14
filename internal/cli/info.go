@@ -66,7 +66,8 @@ var infoCmd = &cobra.Command{
 		}
 
 		client := registry.NewClient()
-		idx, err := client.FetchAllIndexes(sources)
+		ctx := cmd.Context()
+		idx, err := client.FetchAllIndexes(ctx, sources)
 		if err != nil {
 			return fmt.Errorf("fetching indexes: %w", err)
 		}
