@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
 var updateCmd = &cobra.Command{
 	Use:   "update [skill]",
 	Short: "Update installed skills",
