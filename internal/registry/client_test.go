@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -23,7 +24,7 @@ func TestFetchIndexLocal(t *testing.T) {
 	client := NewClient()
 	source := &RepoSource{Name: "local", URL: dir}
 
-	idx, err := client.FetchIndex(source)
+	idx, err := client.FetchIndex(context.Background(), source)
 	if err != nil {
 		t.Fatalf("FetchIndex: %v", err)
 	}
@@ -53,7 +54,7 @@ func TestFetchIndexHTTP(t *testing.T) {
 	client := NewClient()
 
 	// Direct fetch test
-	data, err := client.fetch(server.URL, "", "")
+	data, err := client.fetch(context.Background(), server.URL, "", "")
 	if err != nil {
 		t.Fatalf("fetch: %v", err)
 	}
@@ -87,7 +88,7 @@ func TestFetchAllIndexes(t *testing.T) {
 		{Name: "reg2", URL: dir2},
 	}
 
-	idx, err := client.FetchAllIndexes(sources)
+	idx, err := client.FetchAllIndexes(context.Background(), sources)
 	if err != nil {
 		t.Fatalf("FetchAllIndexes: %v", err)
 	}
@@ -109,7 +110,7 @@ func TestDownload(t *testing.T) {
 	dest := filepath.Join(dir, "downloaded")
 
 	client := NewClient()
-	if err := client.Download(server.URL, dest, "", ""); err != nil {
+	if err := client.Download(context.Background(), server.URL, dest, "", ""); err != nil {
 		t.Fatalf("Download: %v", err)
 	}
 
@@ -140,7 +141,7 @@ func TestDownloadExceedsMaxSize(t *testing.T) {
 	dest := filepath.Join(dir, "downloaded")
 
 	client := NewClient()
-	if err := client.Download(server.URL, dest, "", ""); err != nil {
+	if err := client.Download(context.Background(), server.URL, dest, "", ""); err != nil {
 		t.Fatalf("Download should succeed for small content: %v", err)
 	}
 }
@@ -160,7 +161,7 @@ func TestFetchExceedsMaxAPIResponseSize(t *testing.T) {
 	defer server.Close()
 
 	client := NewClient()
-	_, err := client.fetch(server.URL, "", "")
+	_, err := client.fetch(context.Background(), server.URL, "", "")
 	if err == nil {
 		t.Fatal("expected error for oversized API response")
 	}
@@ -175,7 +176,7 @@ func TestDownloadLocal(t *testing.T) {
 
 	dest := filepath.Join(dir, "dest.tar.gz")
 	client := NewClient()
-	if err := client.Download(srcFile, dest, "", ""); err != nil {
+	if err := client.Download(context.Background(), srcFile, dest, "", ""); err != nil {
 		t.Fatalf("local Download: %v", err)
 	}
 
@@ -256,7 +257,7 @@ func TestDownloadDirectoryLocal(t *testing.T) {
 	client := NewClient()
 	source := &RepoSource{Name: "local", URL: srcDir}
 
-	if err := client.DownloadDirectory(source, "skills/my-skill/", destDir); err != nil {
+	if err := client.DownloadDirectory(context.Background(), source, "skills/my-skill/", destDir); err != nil {
 		t.Fatalf("DownloadDirectory: %v", err)
 	}
 
@@ -313,7 +314,7 @@ func TestDownloadDirectoryLocalSkipsHiddenFiles(t *testing.T) {
 	client := NewClient()
 	source := &RepoSource{Name: "local", URL: srcDir}
 
-	if err := client.DownloadDirectory(source, "skills/my-skill/", destDir); err != nil {
+	if err := client.DownloadDirectory(context.Background(), source, "skills/my-skill/", destDir); err != nil {
 		t.Fatalf("DownloadDirectory: %v", err)
 	}
 
@@ -367,7 +368,7 @@ func TestDownloadDirectoryGitHub(t *testing.T) {
 
 	destDir := t.TempDir()
 	client := NewClient()
-	if err := client.DownloadDirectory(source, "skills/test-skill/", destDir); err != nil {
+	if err := client.DownloadDirectory(context.Background(), source, "skills/test-skill/", destDir); err != nil {
 		t.Fatalf("DownloadDirectory GitHub: %v", err)
 	}
 
@@ -428,7 +429,7 @@ func TestDownloadDirectoryGitHubConcurrent(t *testing.T) {
 
 	destDir := t.TempDir()
 	client := NewClient()
-	if err := client.DownloadDirectory(source, "skills/many-files/", destDir); err != nil {
+	if err := client.DownloadDirectory(context.Background(), source, "skills/many-files/", destDir); err != nil {
 		t.Fatalf("DownloadDirectory: %v", err)
 	}
 

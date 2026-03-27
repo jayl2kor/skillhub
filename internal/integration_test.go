@@ -73,7 +73,7 @@ func TestFullWorkflow(t *testing.T) {
 	// Step 3: Search
 	sources := []registry.RepoSource{{Name: "test-reg", URL: regDir}}
 	client := registry.NewClient()
-	fetchedIdx, err := client.FetchAllIndexes(sources)
+	fetchedIdx, err := client.FetchAllIndexes(context.Background(), sources)
 	if err != nil {
 		t.Fatalf("FetchAllIndexes: %v", err)
 	}
@@ -88,7 +88,7 @@ func TestFullWorkflow(t *testing.T) {
 
 	// Step 4: Install
 	inst := installer.NewInstaller(paths, cfg)
-	if err := inst.Install("test-prompt", false, false); err != nil {
+	if err := inst.Install(context.Background(), "test-prompt", false, false); err != nil {
 		t.Fatalf("Install: %v", err)
 	}
 

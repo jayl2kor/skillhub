@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+// VerifyChecksum checks that the SHA-256 of the file matches the expected value.
 func VerifyChecksum(filePath string, expected string) error {
 	if expected == "" {
 		return nil
@@ -27,6 +28,7 @@ func VerifyChecksum(filePath string, expected string) error {
 	return nil
 }
 
+// ComputeSHA256 returns the hex-encoded SHA-256 digest of the file.
 func ComputeSHA256(filePath string) (string, error) {
 	f, err := os.Open(filePath)
 	if err != nil {

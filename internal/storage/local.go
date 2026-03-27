@@ -16,7 +16,10 @@ func DetectProjectRoot() string {
 	if err == nil {
 		return strings.TrimSpace(string(out))
 	}
-	cwd, _ := os.Getwd()
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "."
+	}
 	return cwd
 }
 
@@ -27,6 +30,7 @@ func (p *Paths) projectRoot() string {
 	return DetectProjectRoot()
 }
 
+// ListInstalledSkills returns all skills installed globally and in the local project.
 func ListInstalledSkills(paths *Paths) ([]skill.InstalledSkill, error) {
 	seen := make(map[string]bool)
 	var skills []skill.InstalledSkill
@@ -71,6 +75,7 @@ func ListInstalledSkills(paths *Paths) ([]skill.InstalledSkill, error) {
 	return skills, nil
 }
 
+// IsInstalled reports whether a skill with the given name is installed.
 func IsInstalled(paths *Paths, name string) bool {
 	// Global check
 	manifestPath := filepath.Join(paths.SkillsDir, name, "skill.json")
@@ -88,6 +93,7 @@ func IsInstalled(paths *Paths, name string) bool {
 	return false
 }
 
+// GetInstalledSkill returns the installed skill with the given name, or an error if not found.
 func GetInstalledSkill(paths *Paths, name string) (*skill.InstalledSkill, error) {
 	// Check global path first
 	skillDir := filepath.Join(paths.SkillsDir, name)

@@ -7,12 +7,14 @@ import (
 	"time"
 )
 
+// InstalledSkill represents a skill that has been installed locally.
 type InstalledSkill struct {
 	Manifest Manifest
 	Dir      string
 	Meta     InstallMeta
 }
 
+// InstallMeta holds metadata about how and when a skill was installed.
 type InstallMeta struct {
 	InstalledAt string `json:"installed_at"`
 	Registry    string `json:"registry"`
@@ -20,6 +22,7 @@ type InstallMeta struct {
 	Checksum    string `json:"checksum,omitempty"`
 }
 
+// NewInstallMeta creates an InstallMeta with the current timestamp.
 func NewInstallMeta(registry, version, checksum string) InstallMeta {
 	return InstallMeta{
 		InstalledAt: time.Now().UTC().Format(time.RFC3339),
@@ -29,6 +32,7 @@ func NewInstallMeta(registry, version, checksum string) InstallMeta {
 	}
 }
 
+// LoadInstallMeta reads and parses install metadata from the given file path.
 func LoadInstallMeta(path string) (*InstallMeta, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -43,6 +47,7 @@ func LoadInstallMeta(path string) (*InstallMeta, error) {
 	return &meta, nil
 }
 
+// Save writes the install metadata to the given file path as JSON.
 func (m *InstallMeta) Save(path string) error {
 	data, err := json.MarshalIndent(m, "", "  ")
 	if err != nil {

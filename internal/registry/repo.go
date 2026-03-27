@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// RepoSource describes a skill registry backed by a Git repository.
 type RepoSource struct {
 	Name     string
 	URL      string
@@ -22,6 +23,7 @@ func (r *RepoSource) branch() string {
 	return "main"
 }
 
+// IndexURL returns the URL for the registry's index.json file.
 func (r *RepoSource) IndexURL() string {
 	if isLocalPath(r.URL) {
 		return filepath.Join(r.URL, "index.json")
@@ -29,6 +31,7 @@ func (r *RepoSource) IndexURL() string {
 	return rawContentURL(r.URL, "index.json", r.branch())
 }
 
+// ResolveDownloadURL converts a relative path to a full download URL.
 func (r *RepoSource) ResolveDownloadURL(relative string) string {
 	if strings.HasPrefix(relative, "http://") || strings.HasPrefix(relative, "https://") {
 		return relative
@@ -39,6 +42,7 @@ func (r *RepoSource) ResolveDownloadURL(relative string) string {
 	return rawContentURL(r.URL, relative, r.branch())
 }
 
+// ParseRepoURL parses a repository URL or shorthand into a RepoSource.
 func ParseRepoURL(rawURL string) (*RepoSource, error) {
 	raw := strings.TrimSpace(rawURL)
 

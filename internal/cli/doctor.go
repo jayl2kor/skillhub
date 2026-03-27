@@ -89,9 +89,11 @@ var doctorCmd = &cobra.Command{
 		// Check registries
 		fmt.Print("Registries... ")
 		cfg, err := config.Load(paths.Config)
-		if err == nil && len(cfg.Registries) > 0 {
+		if err != nil {
+			fmt.Println("SKIPPED (config load error)")
+		} else if len(cfg.Registries) > 0 {
 			fmt.Printf("%d configured\n", len(cfg.Registries))
-		} else if err == nil {
+		} else {
 			fmt.Println("none configured")
 		}
 
