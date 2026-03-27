@@ -30,6 +30,8 @@ func (p *Paths) projectRoot() string {
 	return DetectProjectRoot()
 }
 
+// ListInstalledSkills returns all installed skills from both the global skills
+// directory and all local project agent paths, deduplicating by name.
 func ListInstalledSkills(paths *Paths) ([]skill.InstalledSkill, error) {
 	seen := make(map[string]bool)
 	var skills []skill.InstalledSkill
@@ -74,6 +76,8 @@ func ListInstalledSkills(paths *Paths) ([]skill.InstalledSkill, error) {
 	return skills, nil
 }
 
+// IsInstalled reports whether a skill with the given name is installed
+// in the global skills directory or any local project agent path.
 func IsInstalled(paths *Paths, name string) bool {
 	// Global check
 	manifestPath := filepath.Join(paths.SkillsDir, name, "skill.json")
@@ -91,6 +95,8 @@ func IsInstalled(paths *Paths, name string) bool {
 	return false
 }
 
+// GetInstalledSkill returns the installed skill with the given name,
+// checking the global directory first and then local project agent paths.
 func GetInstalledSkill(paths *Paths, name string) (*skill.InstalledSkill, error) {
 	// Check global path first
 	skillDir := filepath.Join(paths.SkillsDir, name)

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 )
 
+// Paths holds resolved filesystem paths for skillhub's data directories.
 type Paths struct {
 	Home        string
 	Config      string
@@ -17,6 +18,7 @@ type Paths struct {
 	ProjectRoot string // project root for local skill lookup; empty means auto-detect
 }
 
+// NewPaths constructs a Paths with all directories rooted under home.
 func NewPaths(home string) *Paths {
 	return &Paths{
 		Home:      home,
@@ -28,6 +30,8 @@ func NewPaths(home string) *Paths {
 	}
 }
 
+// DefaultHome returns the skillhub home directory, using SKILLHUB_HOME if set,
+// otherwise ~/.skillhub.
 func DefaultHome() string {
 	if env := os.Getenv("SKILLHUB_HOME"); env != "" {
 		return env
@@ -41,6 +45,7 @@ func DefaultHome() string {
 	return filepath.Join(home, ".skillhub")
 }
 
+// EnsureDirectories creates all required skillhub directories if they do not exist.
 func (p *Paths) EnsureDirectories() error {
 	dirs := []string{p.Home, p.SkillsDir, p.CacheDir, p.LogDir, p.TmpDir}
 	for _, dir := range dirs {
@@ -51,6 +56,7 @@ func (p *Paths) EnsureDirectories() error {
 	return nil
 }
 
+// SkillDir returns the installation directory for the skill with the given name.
 func (p *Paths) SkillDir(name string) string {
 	return filepath.Join(p.SkillsDir, name)
 }

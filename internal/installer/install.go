@@ -14,6 +14,7 @@ import (
 	"github.com/jayl2kor/skillhub/internal/storage"
 )
 
+// Installer downloads, verifies, and installs skills from a registry.
 type Installer struct {
 	Paths      *storage.Paths
 	Config     *config.Config
@@ -24,6 +25,7 @@ type Installer struct {
 	RepoFilter string // filter by registry name (empty = all)
 }
 
+// NewInstaller creates an Installer configured with the given paths and config.
 func NewInstaller(paths *storage.Paths, cfg *config.Config) *Installer {
 	return &Installer{
 		Paths:   paths,
@@ -39,6 +41,9 @@ func (inst *Installer) logVerbose(format string, args ...any) {
 	}
 }
 
+// Install resolves, downloads, verifies, and installs the named skill.
+// If force is true, an existing installation is overwritten.
+// If global is true, the skill is installed to the agent's home skills directory.
 func (inst *Installer) Install(ctx context.Context, name string, force bool, global bool) error {
 	// 1. Check if already installed
 	inst.logVerbose("checking if %q is already installed", name)

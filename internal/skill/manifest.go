@@ -21,6 +21,7 @@ var (
 	}
 )
 
+// Manifest describes a skill's metadata as declared in skill.json.
 type Manifest struct {
 	Name             string   `json:"name"`
 	Version          string   `json:"version"`
@@ -34,6 +35,7 @@ type Manifest struct {
 	CompatibleAgents []string `json:"compatible_agents,omitempty"`
 }
 
+// LoadManifest reads and parses a skill manifest from the given file path.
 func LoadManifest(path string) (*Manifest, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {
@@ -48,6 +50,7 @@ func LoadManifest(path string) (*Manifest, error) {
 	return &m, nil
 }
 
+// Validate checks that all required manifest fields are present and well-formed.
 func (m *Manifest) Validate() error {
 	if m.Name == "" {
 		return fmt.Errorf("manifest: name is required")

@@ -21,11 +21,13 @@ const (
 	maxAPIResponseSize = 10 * 1024 * 1024  // 10MB for API/JSON responses
 )
 
+// Client communicates with remote skill registries over HTTP.
 type Client struct {
 	HTTPClient *http.Client
 	OnProgress func(filename string) // called for each file downloaded in directory mode
 }
 
+// NewClient creates a Client with a 30-second timeout and safe redirect policy.
 func NewClient() *Client {
 	return &Client{
 		HTTPClient: &http.Client{
@@ -78,6 +80,7 @@ func (c *Client) DetectDefaultBranch(ctx context.Context, source *RepoSource) st
 	return repo.DefaultBranch
 }
 
+// FetchIndex downloads and parses the index.json from the given registry source.
 func (c *Client) FetchIndex(ctx context.Context, source *RepoSource) (*Index, error) {
 	indexURL := source.IndexURL()
 
@@ -98,6 +101,7 @@ func (c *Client) FetchIndex(ctx context.Context, source *RepoSource) (*Index, er
 	return idx, nil
 }
 
+// FetchAllIndexes fetches and merges indexes from all sources, logging warnings for failures.
 func (c *Client) FetchAllIndexes(ctx context.Context, sources []RepoSource) (*Index, error) {
 	var indexes []*Index
 
@@ -113,6 +117,8 @@ func (c *Client) FetchAllIndexes(ctx context.Context, sources []RepoSource) (*In
 	return MergeIndexes(indexes...), nil
 }
 
+// Download fetches rawURL and writes the result to dest, enforcing a 500 MB size limit.
+// For local file paths, it copies the file directly without HTTP.
 func (c *Client) Download(ctx context.Context, rawURL, dest, token, username string) error {
 	if isLocalPath(rawURL) {
 		data, err := os.ReadFile(rawURL)
