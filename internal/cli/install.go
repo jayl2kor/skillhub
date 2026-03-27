@@ -19,7 +19,7 @@ var installCmd = &cobra.Command{
 	Short: "Install a skill",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := loadOrSetupConfig()
+		cfg, err := loadOrSetupConfig(cmd.Context())
 		if err != nil {
 			return err
 		}

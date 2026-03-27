@@ -15,7 +15,7 @@ var updateCmd = &cobra.Command{
 	Use:   "update [skill]",
 	Short: "Update installed skills",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := loadOrSetupConfig()
+		cfg, err := loadOrSetupConfig(cmd.Context())
 		if err != nil {
 			return err
 		}

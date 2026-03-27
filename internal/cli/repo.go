@@ -20,7 +20,7 @@ var repoAddCmd = &cobra.Command{
 	Short: "Add a registry",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := loadOrSetupConfig()
+		cfg, err := loadOrSetupConfig(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -63,7 +63,7 @@ var repoListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List registered registries",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := loadOrSetupConfig()
+		cfg, err := loadOrSetupConfig(cmd.Context())
 		if err != nil {
 			return err
 		}
@@ -89,7 +89,7 @@ var repoRemoveCmd = &cobra.Command{
 	Short: "Remove a registry",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := loadOrSetupConfig()
+		cfg, err := loadOrSetupConfig(cmd.Context())
 		if err != nil {
 			return err
 		}

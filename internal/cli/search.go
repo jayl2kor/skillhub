@@ -20,7 +20,7 @@ var searchCmd = &cobra.Command{
 	Short: "Search for skills in registries (omit query to list all)",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := loadOrSetupConfig()
+		cfg, err := loadOrSetupConfig(cmd.Context())
 		if err != nil {
 			return err
 		}

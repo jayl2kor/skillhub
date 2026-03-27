@@ -62,7 +62,7 @@ var publishCmd = &cobra.Command{
 		}
 
 		// Load config and resolve registry
-		cfg, err := loadOrSetupConfig()
+		cfg, err := loadOrSetupConfig(cmd.Context())
 		if err != nil {
 			return err
 		}

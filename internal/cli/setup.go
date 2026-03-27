@@ -40,7 +40,7 @@ func registrySources(cfg *config.Config, repoFilter string) ([]registry.RepoSour
 	return sources, nil
 }
 
-func loadOrSetupConfig() (*config.Config, error) {
+func loadOrSetupConfig(ctx context.Context) (*config.Config, error) {
 	cfg, err := config.Load(paths.Config)
 	if err == nil {
 		return cfg, nil
@@ -90,7 +90,6 @@ func loadOrSetupConfig() (*config.Config, error) {
 			}
 
 			client := registry.NewClient()
-			ctx := context.Background()
 			source.Branch = client.DetectDefaultBranch(ctx, source)
 
 			addRegistry := true

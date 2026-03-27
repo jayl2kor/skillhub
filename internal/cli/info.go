@@ -48,7 +48,7 @@ var infoCmd = &cobra.Command{
 		}
 
 		// Try from registry
-		cfg, err := loadOrSetupConfig()
+		cfg, err := loadOrSetupConfig(cmd.Context())
 		if err != nil {
 			return err
 		}

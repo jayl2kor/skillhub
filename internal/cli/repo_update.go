@@ -16,7 +16,7 @@ var repoUpdateCmd = &cobra.Command{
 	Short: "Fetch and cache registry indexes locally",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := loadOrSetupConfig()
+		cfg, err := loadOrSetupConfig(cmd.Context())
 		if err != nil {
 			return err
 		}

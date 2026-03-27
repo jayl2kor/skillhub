@@ -27,7 +27,7 @@ var showManifestCmd = &cobra.Command{
 	Short: "Show raw skill.json",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		dir, cleanup, err := resolveSkillDir(args[0])
+		dir, cleanup, err := resolveSkillDir(cmd.Context(), args[0])
 		if err != nil {
 			return err
 		}
@@ -47,7 +47,7 @@ var showReadmeCmd = &cobra.Command{
 	Short: "Show SKILL.md",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		dir, cleanup, err := resolveSkillDir(args[0])
+		dir, cleanup, err := resolveSkillDir(cmd.Context(), args[0])
 		if err != nil {
 			return err
 		}
@@ -67,7 +67,7 @@ var showEntryCmd = &cobra.Command{
 	Short: "Show entry file content",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		dir, cleanup, err := resolveSkillDir(args[0])
+		dir, cleanup, err := resolveSkillDir(cmd.Context(), args[0])
 		if err != nil {
 			return err
 		}
@@ -92,7 +92,7 @@ var showAllCmd = &cobra.Command{
 	Short: "Show manifest and readme",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		dir, cleanup, err := resolveSkillDir(args[0])
+		dir, cleanup, err := resolveSkillDir(cmd.Context(), args[0])
 		if err != nil {
 			return err
 		}
@@ -136,7 +136,7 @@ func init() {
 // For installed skills, it returns the installed directory.
 // For remote skills, it downloads and extracts to a temp directory.
 // The caller must call cleanup() when done.
-func resolveSkillDir(name string) (dir string, cleanup func(), err error) {
+func resolveSkillDir(ctx context.Context, name string) (dir string, cleanup func(), err error) {
 	noop := func() {}
 
 	// 1. Check if installed locally
@@ -148,7 +148,7 @@ func resolveSkillDir(name string) (dir string, cleanup func(), err error) {
 	}
 
 	// 2. Fetch from registry
-	cfg, err := loadOrSetupConfig()
+	cfg, err := loadOrSetupConfig(ctx)
 	if err != nil {
 		return "", noop, err
 	}
@@ -163,7 +163,6 @@ func resolveSkillDir(name string) (dir string, cleanup func(), err error) {
 	}
 
 	client := registry.NewClient()
-	ctx := context.Background()
 	idx, err := client.FetchAllIndexes(ctx, sources)
 	if err != nil {
 		return "", noop, fmt.Errorf("fetching indexes: %w", err)
