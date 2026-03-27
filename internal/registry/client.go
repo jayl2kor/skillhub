@@ -144,10 +144,12 @@ func (c *Client) Download(ctx context.Context, rawURL, dest, token, username str
 	tmpPath := tmpFile.Name()
 	defer os.Remove(tmpPath)
 
-	n, err := io.Copy(tmpFile, io.LimitReader(resp.Body, maxDownloadSize+1))
-	tmpFile.Close()
-	if err != nil {
-		return fmt.Errorf("writing download to %s: %w", dest, err)
+	n, copyErr := io.Copy(tmpFile, io.LimitReader(resp.Body, maxDownloadSize+1))
+	if closeErr := tmpFile.Close(); closeErr != nil && copyErr == nil {
+		return fmt.Errorf("closing temp download file: %w", closeErr)
+	}
+	if copyErr != nil {
+		return fmt.Errorf("writing download to %s: %w", dest, copyErr)
 	}
 	if n > maxDownloadSize {
 		return fmt.Errorf("download from %s exceeds maximum size (%d bytes)", rawURL, maxDownloadSize)

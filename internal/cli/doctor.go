@@ -61,7 +61,9 @@ var doctorCmd = &cobra.Command{
 			fmt.Printf("NO (%v)\n", err)
 			ok = false
 		} else {
-			os.Remove(testFile)
+			if err := os.Remove(testFile); err != nil {
+				fmt.Printf("WARNING: could not clean up test file: %v\n", err)
+			}
 			fmt.Println("OK")
 		}
 
